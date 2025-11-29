@@ -13,7 +13,9 @@ router.post("/", authMiddleware, requireRole("PASSENGER"), async (req, res) => {
     const { pickupAddress, dropoffAddress } = req.body;
 
     if (!pickupAddress || !dropoffAddress) {
-      return res.status(400).json({ message: "pickupAddress and dropoffAddress are required" });
+      return res
+        .status(400)
+        .json({ message: "pickupAddress and dropoffAddress are required" });
     }
 
     const request = await Request.create({
@@ -33,27 +35,35 @@ router.post("/", authMiddleware, requireRole("PASSENGER"), async (req, res) => {
 // Yolcu kendi taleplerini görür
 router.get("/my", authMiddleware, requireRole("PASSENGER"), async (req, res) => {
   try {
-    const requests = await Request.find({ passenger: req.user.userId }).sort({ createdAt: -1 });
+    const requests = await Request.find({ passenger: req.user.userId }).sort({
+      createdAt: -1,
+    });
     res.json({ requests });
   } catch (err) {
     console.error("Get my requests error:", err);
-    res.status(500).json({ message: "Server error while fetching requests" });
+    res
+      .status(500)
+      .json({ message: "Server error while fetching requests" });
   }
 });
 
 // GET /api/requests/available
-// Şoförlerin göreceği, henüz kimsenin almadığı PENDING istekler
+// Şoförlerin göreceği, henüz alınmamış istekler
 router.get(
   "/available",
   authMiddleware,
   requireRole("DRIVER"),
   async (req, res) => {
     try {
-      const requests = await Request.find({ status: "PENDING" }).sort({ createdAt: 1 });
+      const requests = await Request.find({ status: "PENDING" }).sort({
+        createdAt: 1,
+      });
       res.json({ requests });
     } catch (err) {
       console.error("Get available requests error:", err);
-      res.status(500).json({ message: "Server error while fetching available requests" });
+      res
+        .status(500)
+        .json({ message: "Server error while fetching available requests" });
     }
   }
 );

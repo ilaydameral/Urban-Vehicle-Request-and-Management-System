@@ -8,10 +8,11 @@ const requireRole = require("../middleware/roleMiddleware");
 const router = express.Router();
 
 // POST /api/trips
-// Şoför bir PENDING request'i kabul eder ve trip başlar
+// Şoför bir PENDING request'i kabul eder ve trip başlatır
 router.post("/", authMiddleware, requireRole("DRIVER"), async (req, res) => {
   try {
     const { requestId } = req.body;
+
     if (!requestId) {
       return res.status(400).json({ message: "requestId is required" });
     }
@@ -28,6 +29,7 @@ router.post("/", authMiddleware, requireRole("DRIVER"), async (req, res) => {
         .json({ message: "Driver already has an ongoing trip" });
     }
 
+    // İlgili request'i bul
     const request = await Request.findById(requestId);
     if (!request) {
       return res.status(404).json({ message: "Request not found" });
@@ -68,8 +70,11 @@ router.patch(
         return res.status(404).json({ message: "Trip not found" });
       }
 
+      // Bu trip'in sürücüsü sen misin?
       if (trip.driver.toString() !== req.user.userId) {
-        return res.status(403).json({ message: "You are not the driver of this trip" });
+        return res
+          .status(403)
+          .json({ message: "You are not the driver of this trip" });
       }
 
       if (trip.status !== "ON_GOING") {
@@ -80,7 +85,7 @@ router.patch(
       trip.completedAt = new Date();
       await trip.save();
 
-      // İlgili request'i de COMPLETED yap
+      // Request'i de COMPLETED yap
       if (trip.request) {
         trip.request.status = "COMPLETED";
         await trip.request.save();
