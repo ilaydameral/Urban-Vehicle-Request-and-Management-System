@@ -18,18 +18,38 @@ const tripSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
+    // Instead of a plain string, we now reference the Vehicle document
+    vehicle: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vehicle",
+      required: true,
+    },
+
     status: {
       type: String,
-      enum: ["ON_GOING", "COMPLETED", "CANCELLED"],
-      default: "ON_GOING",
+      enum: ["ACCEPTED", "ON_GOING", "COMPLETED", "CANCELLED"],
+      default: "ACCEPTED",
     },
+
     startedAt: {
       type: Date,
-      default: Date.now,
     },
-    completedAt: Date,
+    completedAt: {
+      type: Date,
+    },
+
+    // Optional: later we can add fare, distance, etc.
+    fare: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 module.exports = mongoose.model("Trip", tripSchema);
+  
