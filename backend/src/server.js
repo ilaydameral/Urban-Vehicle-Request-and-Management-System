@@ -9,32 +9,7 @@ const driverRoutes = require("./routes/driverRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
 
 
-function validateEnv() {
-  const requiredVars = ["MONGODB_URI", "JWT_SECRET"];
-  const missing = requiredVars.filter((key) => !process.env[key]);
-
-  if (missing.length > 0) {
-    console.error(
-      `Missing required environment variables: ${missing.join(", ")}. Server cannot start.`
-    );
-    process.exit(1);
-  }
-}
-
-function validateEnv() {
-  const requiredVars = ["MONGODB_URI", "JWT_SECRET"];
-  const missing = requiredVars.filter((key) => !process.env[key]);
-
-  if (missing.length > 0) {
-    console.error(
-      `Missing required environment variables: ${missing.join(", ")}. Server cannot start.`
-    );
-    process.exit(1);
-  }
-}
-
 // DB'ye bağlan
-validateEnv();
 connectDB();
 
 app.use(cors());

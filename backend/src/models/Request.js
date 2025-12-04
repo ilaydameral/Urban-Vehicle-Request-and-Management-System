@@ -20,7 +20,7 @@ const requestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["PENDING", "ACCEPTED", "ON_GOING", "CANCELLED", "COMPLETED"],
+      enum: ["PENDING", "ACCEPTED", "CANCELLED", "COMPLETED"],
       default: "PENDING",
     },
   },

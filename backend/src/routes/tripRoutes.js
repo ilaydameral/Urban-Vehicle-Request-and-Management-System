@@ -17,10 +17,10 @@ router.post("/", authMiddleware, requireRole("DRIVER"), async (req, res) => {
       return res.status(400).json({ message: "requestId is required" });
     }
 
-    // Aynı sürücünün aktif (başlamış veya başlamamış) trip'i var mı?
+    // Aynı sürücünün ON_GOING trip'i var mı?
     const existingTrip = await Trip.findOne({
       driver: req.user.userId,
-      status: { $in: ["ACCEPTED", "ON_GOING"] },
+      status: "ON_GOING",
     });
 
     if (existingTrip) {
@@ -29,18 +29,21 @@ router.post("/", authMiddleware, requireRole("DRIVER"), async (req, res) => {
         .json({ message: "Driver already has an ongoing trip" });
     }
 
-    const request = await Request.findOneAndUpdate(
-      { _id: requestId, status: "PENDING" },
-      { status: "ACCEPTED" },
-      { new: true }
-    );
+    // İlgili request'i bul
+    const request = await Request.findById(requestId);
     if (!request) {
-      return res
-        .status(400)
-        .json({ message: "Request is not available for acceptance" });
+      return res.status(404).json({ message: "Request not found" });
     }
 
-    // Trip oluştur (başlamamış olarak)
+    if (request.status !== "PENDING") {
+      return res.status(400).json({ message: "Request is not available" });
+    }
+
+    // Request'i ACCEPTED yap
+    request.status = "ACCEPTED";
+    await request.save();
+
+    // Trip oluştur
     const trip = await Trip.create({
       request: request._id,
       passenger: request.passenger,

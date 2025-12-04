@@ -1,15 +1,11 @@
 // src/pages/DriverDashboard.jsx
-<<<<<<< HEAD
 import { useEffect, useState } from "react";
 import api from "../api/client";
-=======
->>>>>>> 892cf5dcc2251b94c4069cfa95815817b9588784
 import { useAuth } from "../context/AuthContext";
 
 export default function DriverDashboard() {
   const { user, logout } = useAuth();
 
-<<<<<<< HEAD
   const [driverProfile, setDriverProfile] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
@@ -466,14 +462,6 @@ export default function DriverDashboard() {
           </table>
         )}
       </section>
-=======
-  return (
-    <div style={{ padding: 24 }}>
-      <h2>Driver Dashboard</h2>
-      <p>Welcome, {user?.name} ({user?.email})</p>
-      <button onClick={logout}>Logout</button>
-      {/* Buraya available requests + my trips gelecek */}
->>>>>>> 892cf5dcc2251b94c4069cfa95815817b9588784
     </div>
   );
 }

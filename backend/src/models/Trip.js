@@ -28,12 +28,13 @@ const tripSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["ACCEPTED", "ON_GOING", "COMPLETED", "CANCELLED"],
-      default: "ACCEPTED",
+      enum: ["ON_GOING", "COMPLETED", "CANCELLED"],
+      default: "ON_GOING",
     },
 
     startedAt: {
       type: Date,
+      default: Date.now,
     },
     completedAt: {
       type: Date,
