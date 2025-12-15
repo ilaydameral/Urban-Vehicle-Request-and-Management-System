@@ -241,7 +241,7 @@ export default function CoordinatorRequests() {
                   {r.pickupAddress}
                 </td>
                 <td style={{ borderBottom: "1px solid #f0f0f0", padding: "8px 6px" }}>
-                  {r.dropoffAddress}
+                  {r.dropAddress || r.dropoffAddress}
                 </td>
                 <td style={{ borderBottom: "1px solid #f0f0f0", padding: "8px 6px" }}>
                   {formatDate(r.createdAt)}
@@ -265,7 +265,7 @@ export default function CoordinatorRequests() {
             <div style={{ marginBottom: 10 }}>
               <b>Pickup:</b> {selectedRequest.pickupAddress}
               <br />
-              <b>Dropoff:</b> {selectedRequest.dropoffAddress}
+              <b>Dropoff:</b> {selectedRequest.dropAddress || selectedRequest.dropoffAddress}
               <br />
               <b>Passenger:</b>{" "}
               {selectedRequest.passenger?.name ||

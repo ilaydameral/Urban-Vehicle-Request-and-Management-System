@@ -40,7 +40,8 @@ export default function MyTrips() {
   const counts = useMemo(() => {
     const c = { ON_GOING: 0, COMPLETED: 0, CANCELLED: 0 };
     for (const t of trips) {
-      if (c[t.status] !== undefined) c[t.status]++;
+      const status = t.tripstatus || t.status;
+      if (c[status] !== undefined) c[status]++;
     }
     return c;
   }, [trips]);
@@ -51,7 +52,7 @@ export default function MyTrips() {
     let list = [...trips];
 
     if (statusFilter !== "ALL") {
-      list = list.filter((t) => t.status === statusFilter);
+      list = list.filter((t) => (t.tripstatus || t.status) === statusFilter);
     }
 
     if (query) {
@@ -64,16 +65,22 @@ export default function MyTrips() {
         const passengerEmail =
           t.request?.passenger?.email || t.passenger?.email || "";
         const pickup = t.request?.pickupAddress || t.pickupAddress || "";
-        const dropoff = t.request?.dropoffAddress || t.dropoffAddress || "";
+        const dropoff =
+          t.request?.dropAddress ||
+          t.request?.dropoffAddress ||
+          t.dropAddress ||
+          t.dropoffAddress ||
+          "";
         const plate = t.vehicle?.plateNumber || "";
-        const blob = `${passengerName} ${passengerEmail} ${pickup} ${dropoff} ${plate} ${t.status}`.toLowerCase();
+        const status = t.tripstatus || t.status || "";
+        const blob = `${passengerName} ${passengerEmail} ${pickup} ${dropoff} ${plate} ${status}`.toLowerCase();
         return blob.includes(query);
       });
     }
 
     list.sort((a, b) => {
-      const aTime = new Date(a.createdAt || a.startedAt || 0).getTime();
-      const bTime = new Date(b.createdAt || b.startedAt || 0).getTime();
+      const aTime = new Date(a.createdAt || a.starttime || a.startedAt || 0).getTime();
+      const bTime = new Date(b.createdAt || b.starttime || b.startedAt || 0).getTime();
       return sort === "NEWEST" ? bTime - aTime : aTime - bTime;
     });
 
@@ -169,12 +176,18 @@ export default function MyTrips() {
                 t.request?.passengerName ||
                 "-";
               const pickup = t.request?.pickupAddress || t.pickupAddress || "-";
-              const dropoff = t.request?.dropoffAddress || t.dropoffAddress || "-";
+              const dropoff =
+                t.request?.dropAddress ||
+                t.request?.dropoffAddress ||
+                t.dropAddress ||
+                t.dropoffAddress ||
+                "-";
               const plate = t.vehicle?.plateNumber ? t.vehicle.plateNumber.toUpperCase() : "-";
+              const status = t.tripstatus || t.status;
 
               return (
                 <tr key={t._id}>
-                  <td style={{ padding: "8px 4px" }}>{t.status}</td>
+                  <td style={{ padding: "8px 4px" }}>{status}</td>
                   <td style={{ padding: "8px 4px" }}>{passenger}</td>
                   <td style={{ padding: "8px 4px" }}>
                     {pickup} → {dropoff}
@@ -182,7 +195,7 @@ export default function MyTrips() {
                   <td style={{ padding: "8px 4px" }}>{plate}</td>
                   <td style={{ padding: "8px 4px" }}>{formatDate(t.createdAt)}</td>
                   <td style={{ padding: "8px 4px" }}>
-                    {t.status === "ON_GOING" ? (
+                    {status === "ON_GOING" ? (
                       <>
                         <button
                           onClick={() => completeTrip(t._id)}

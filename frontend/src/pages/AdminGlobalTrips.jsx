@@ -70,7 +70,10 @@ export default function AdminGlobalTrips() {
     setError("");
     try {
       const params = {};
-      if (statusFilter) params.status = statusFilter;
+      if (statusFilter) {
+        params.tripstatus = statusFilter;
+        params.status = statusFilter; // backward compatibility
+      }
       const res = await api.get("/trips", { params });
       setTrips(res.data?.trips || []);
     } catch (err) {
@@ -213,7 +216,9 @@ export default function AdminGlobalTrips() {
                   }}
                 >
                   {t.request
-                    ? `${t.request.pickupAddress} → ${t.request.dropoffAddress}`
+                    ? `${t.request.pickupAddress} → ${
+                        t.request.dropAddress || t.request.dropoffAddress
+                      }`
                     : "-"}
                 </td>
                 <td
@@ -223,7 +228,7 @@ export default function AdminGlobalTrips() {
                     fontWeight: 500,
                   }}
                 >
-                  {t.status}
+                  {t.tripstatus || t.status}
                 </td>
                 <td
                   style={{
@@ -231,7 +236,11 @@ export default function AdminGlobalTrips() {
                     padding: "4px 0",
                   }}
                 >
-                  {typeof t.fare === "number" ? t.fare.toFixed(2) : "-"}
+                  {typeof t.price === "number"
+                    ? t.price.toFixed(2)
+                    : typeof t.fare === "number"
+                    ? t.fare.toFixed(2)
+                    : "-"}
                 </td>
                 <td
                   style={{

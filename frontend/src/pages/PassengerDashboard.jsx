@@ -8,7 +8,7 @@ export default function PassengerDashboard() {
 
   const [form, setForm] = useState({
     pickupAddress: "",
-    dropoffAddress: "",
+    dropAddress: "",
   });
 
   const [requests, setRequests] = useState([]);
@@ -73,11 +73,12 @@ export default function PassengerDashboard() {
     try {
       await api.post("/requests", {
         pickupAddress: form.pickupAddress,
-        dropoffAddress: form.dropoffAddress,
+        dropAddress: form.dropAddress,
+        dropoffAddress: form.dropAddress, // backward compatibility
       });
 
       setSuccessMsg("Request created successfully.");
-      setForm({ pickupAddress: "", dropoffAddress: "" });
+      setForm({ pickupAddress: "", dropAddress: "" });
 
       // Listeyi yenile
       await fetchMyRequests();
@@ -146,8 +147,8 @@ export default function PassengerDashboard() {
             <label>Dropoff Address</label>
             <input
               type="text"
-              name="dropoffAddress"
-              value={form.dropoffAddress}
+              name="dropAddress"
+              value={form.dropAddress}
               onChange={handleChange}
               required
               style={{ width: "100%", padding: 8 }}
@@ -213,7 +214,7 @@ export default function PassengerDashboard() {
                     {req.pickupAddress}
                   </td>
                   <td style={{ borderBottom: "1px solid #eee", padding: "4px 0" }}>
-                    {req.dropoffAddress}
+                    {req.dropAddress || req.dropoffAddress}
                   </td>
                   <td
                     style={{

@@ -53,7 +53,8 @@ export default function TripDetail() {
   }, [id]);
 
   const isPassenger = user?.role === "PASSENGER";
-  const canRate = isPassenger && trip?.status === "COMPLETED" && !trip?.isRated;
+  const tripStatus = trip?.tripstatus || trip?.status;
+  const canRate = isPassenger && tripStatus === "COMPLETED" && !trip?.isRated;
 
   const backTo =
     user?.role === "PASSENGER"
@@ -138,17 +139,17 @@ export default function TripDetail() {
               <b>Trip ID:</b> {trip._id}
             </div>
             <div>
-              <b>Status:</b> {trip.status || "-"}
+              <b>Status:</b> {trip.tripstatus || trip.status || "-"}
             </div>
             <div>
               <b>Created At:</b> {formatDate(trip.createdAt)}
             </div>
             <div>
-              <b>Fare:</b> {trip.fare ?? 0}
+              <b>Fare:</b> {trip.price ?? trip.fare ?? 0}
             </div>
 
             {/* ✅ Passenger Rating */}
-            {isPassenger && trip.status === "COMPLETED" ? (
+            {isPassenger && tripStatus === "COMPLETED" ? (
               <div
                 style={{
                   marginTop: 6,
@@ -236,7 +237,7 @@ export default function TripDetail() {
                   <b>Pickup:</b> {trip.request.pickupAddress || "-"}
                 </div>
                 <div>
-                  <b>Dropoff:</b> {trip.request.dropoffAddress || "-"}
+                  <b>Dropoff:</b> {trip.request.dropAddress || trip.request.dropoffAddress || "-"}
                 </div>
                 <div>
                   <b>Request Status:</b> {trip.request.status || "-"}

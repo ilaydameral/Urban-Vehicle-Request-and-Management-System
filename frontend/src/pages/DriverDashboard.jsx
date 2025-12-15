@@ -575,7 +575,7 @@ export default function DriverDashboard() {
                     {r.passenger?.name || r.passengerName || "-"}
                   </td>
                   <td style={{ padding: "6px 4px" }}>{r.pickupAddress}</td>
-                  <td style={{ padding: "6px 4px" }}>{r.dropoffAddress}</td>
+                  <td style={{ padding: "6px 4px" }}>{r.dropAddress || r.dropoffAddress}</td>
                   <td style={{ padding: "6px 4px" }}>{formatDate(r.createdAt)}</td>
                   <td style={{ padding: "6px 4px" }}>{r.status}</td>
                   <td style={{ padding: "6px 4px" }}>
@@ -647,13 +647,17 @@ export default function DriverDashboard() {
                     {t.request?.pickupAddress || t.pickupAddress || "-"}
                   </td>
                   <td style={{ padding: "6px 4px" }}>
-                    {t.request?.dropoffAddress || t.dropoffAddress || "-"}
+                    {t.request?.dropAddress ||
+                      t.request?.dropoffAddress ||
+                      t.dropAddress ||
+                      t.dropoffAddress ||
+                      "-"}
                   </td>
-                  <td style={{ padding: "6px 4px" }}>{t.status}</td>
-                  <td style={{ padding: "6px 4px" }}>{formatDate(t.startedAt)}</td>
-                  <td style={{ padding: "6px 4px" }}>{formatDate(t.completedAt)}</td>
+                  <td style={{ padding: "6px 4px" }}>{t.tripstatus || t.status}</td>
+                  <td style={{ padding: "6px 4px" }}>{formatDate(t.starttime || t.startedAt)}</td>
+                  <td style={{ padding: "6px 4px" }}>{formatDate(t.endtime || t.completedAt)}</td>
                   <td style={{ padding: "6px 4px" }}>
-                    {t.status === "ON_GOING" ? (
+                    {(t.tripstatus || t.status) === "ON_GOING" ? (
                       <>
                         <button
                           onClick={() => handleCompleteTrip(t._id)}
