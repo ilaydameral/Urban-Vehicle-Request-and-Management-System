@@ -165,14 +165,34 @@ async function getDriverDashboard(req, res) {
     const verifiedVehicles = vehicles.filter((v) => v.isVerified).length;
     const activeVehicles = vehicles.filter((v) => v.isActive !== false).length;
 
-    const [ongoingTrip, completedCount, cancelledCount] = await Promise.all([
+    const [ongoingTrip, completedCount, cancelledCount, earningsResult] = await Promise.all([
       Trip.findOne({ driver: driver._id, status: "ON_GOING" })
         .populate("request")
         .populate("passenger")
         .populate("vehicle"),
       Trip.countDocuments({ driver: driver._id, status: "COMPLETED" }),
       Trip.countDocuments({ driver: driver._id, status: "CANCELLED" }),
+      // Toplam kazanç hesaplama
+      Trip.aggregate([
+        {
+          $match: {
+            driver: driver._id,
+            status: "COMPLETED"
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalEarnings: { $sum: "$fare" }
+          }
+        }
+      ])
     ]);
+
+    // Toplam kazancı al (aggregation sonucundan)
+    const totalEarnings = earningsResult && earningsResult[0]
+      ? earningsResult[0].totalEarnings
+      : 0;
 
     return res.json({
       driver: {
@@ -187,6 +207,7 @@ async function getDriverDashboard(req, res) {
         rating: driver.rating || 0,
         ratingCount: driver.ratingCount || 0,
         totalTrips: driver.totalTrips || 0,
+        totalEarnings: Math.round(totalEarnings * 100) / 100, // 2 ondalık
         createdAt: driver.createdAt,
       },
       vehicles: {

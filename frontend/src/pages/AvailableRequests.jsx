@@ -62,7 +62,24 @@ function AvailableRequests() {
 
   return (
     <div style={{ padding: "20px" }}>
-      <h2>Available Requests</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+        <h2 style={{ margin: 0 }}>Available Requests</h2>
+        <button
+          onClick={fetchRequests}
+          disabled={loading}
+          style={{
+            padding: "8px 16px",
+            backgroundColor: loading ? "#ccc" : "#0066ff",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: loading ? "not-allowed" : "pointer",
+            fontSize: "14px"
+          }}
+        >
+          {loading ? "Refreshing..." : "🔄 Refresh"}
+        </button>
+      </div>
 
       {error && (
         <p style={{ color: "red", marginBottom: "10px" }}>

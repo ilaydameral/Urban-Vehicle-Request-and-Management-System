@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
 
       try {
         const res = await api.get("/auth/me");
-        setUser(normalizeUser(res.data));
+        setUser(normalizeUser(res.data.user)); // ✅ res.data.user instead of res.data
       } catch (err) {
         console.error("Failed to fetch /auth/me", err);
         localStorage.removeItem("token");

@@ -24,6 +24,7 @@ export default function DriverDashboard() {
 
   const [availableRequests, setAvailableRequests] = useState([]);
   const [trips, setTrips] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState(null); // Yeni: dashboard istatistikleri
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -57,6 +58,17 @@ export default function DriverDashboard() {
         }
         setDriverProfile(profile);
 
+        // 1.5) Dashboard stats (rating, earnings, etc.)
+        if (profile) {
+          try {
+            const dashboardRes = await api.get("/drivers/dashboard");
+            setDashboardStats(dashboardRes.data);
+          } catch (err) {
+            console.error("Error fetching dashboard stats:", err);
+            // Dashboard stats optional, don't block
+          }
+        }
+
         // 2) Vehicles
         const vehiclesRes = await api.get("/vehicles/my");
         const raw = vehiclesRes.data;
@@ -76,7 +88,7 @@ export default function DriverDashboard() {
         console.error("Error initializing driver dashboard", err);
         setError(
           err.response?.data?.message ||
-            "Failed to load driver data. Please try again."
+          "Failed to load driver data. Please try again."
         );
       } finally {
         setLoading(false);
@@ -142,7 +154,7 @@ export default function DriverDashboard() {
       console.error("Error creating driver profile", err);
       setError(
         err.response?.data?.message ||
-          "Failed to create driver profile. Please try again."
+        "Failed to create driver profile. Please try again."
       );
     } finally {
       setProfileSubmitting(false);
@@ -229,12 +241,17 @@ export default function DriverDashboard() {
 
       setSuccessMsg("Request accepted. Trip created and started (ON_GOING).");
       await Promise.all([fetchAvailableRequests(), fetchMyTrips()]);
+
+      // Auto-clear success message after 5 seconds
+      setTimeout(() => setSuccessMsg(""), 5000);
     } catch (err) {
       console.error("Error accepting request", err);
       setError(
         err.response?.data?.message ||
-          "Failed to accept request. Please try again."
+        "Failed to accept request. Please try again."
       );
+      // Auto-clear error message after 5 seconds
+      setTimeout(() => setError(""), 5000);
     } finally {
       setActionLoading(false);
     }
@@ -253,12 +270,17 @@ export default function DriverDashboard() {
       await api.patch(`/trips/${tripId}/complete`);
       setSuccessMsg("Trip completed.");
       await fetchMyTrips();
+
+      // Auto-clear success message after 5 seconds
+      setTimeout(() => setSuccessMsg(""), 5000);
     } catch (err) {
       console.error("Error completing trip", err);
       setError(
         err.response?.data?.message ||
-          "Failed to complete trip. Please try again."
+        "Failed to complete trip. Please try again."
       );
+      // Auto-clear error message after 5 seconds
+      setTimeout(() => setError(""), 5000);
     } finally {
       setActionLoading(false);
     }
@@ -277,12 +299,17 @@ export default function DriverDashboard() {
       await api.patch(`/trips/${tripId}/cancel`);
       setSuccessMsg("Trip cancelled.");
       await fetchMyTrips();
+
+      // Auto-clear success message after 5 seconds
+      setTimeout(() => setSuccessMsg(""), 5000);
     } catch (err) {
       console.error("Error cancelling trip", err);
       setError(
         err.response?.data?.message ||
-          "Failed to cancel trip. Please try again."
+        "Failed to cancel trip. Please try again."
       );
+      // Auto-clear error message after 5 seconds
+      setTimeout(() => setError(""), 5000);
     } finally {
       setActionLoading(false);
     }
@@ -336,6 +363,52 @@ export default function DriverDashboard() {
       {error && <p style={{ color: "red", marginBottom: 8 }}>{error}</p>}
       {successMsg && (
         <p style={{ color: "green", marginBottom: 8 }}>{successMsg}</p>
+      )}
+
+      {/* Driver Statistics Card */}
+      {dashboardStats && driverProfile && (
+        <section
+          style={{
+            border: "1px solid #ddd",
+            padding: 16,
+            borderRadius: 6,
+            marginBottom: 24,
+            backgroundColor: "#f9f9f9"
+          }}
+        >
+          <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 16 }}>📊 Your Statistics</h3>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>⭐ Average Rating</div>
+              <div style={{ fontSize: 20, fontWeight: "bold", color: "#0066ff" }}>
+                {dashboardStats.driver?.rating?.toFixed(1) || "0.0"} / 5.0
+              </div>
+              <div style={{ fontSize: 12, color: "#888" }}>
+                ({dashboardStats.driver?.ratingCount || 0} ratings)
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>🚗 Total Trips</div>
+              <div style={{ fontSize: 20, fontWeight: "bold", color: "#28a745" }}>
+                {dashboardStats.driver?.totalTrips || 0}
+              </div>
+              <div style={{ fontSize: 12, color: "#888" }}>
+                ({dashboardStats.trips?.counts?.completed || 0} completed)
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>💰 Total Earnings</div>
+              <div style={{ fontSize: 20, fontWeight: "bold", color: "#ff6b00" }}>
+                ₺{dashboardStats.driver?.totalEarnings?.toFixed(2) || "0.00"}
+              </div>
+              <div style={{ fontSize: 12, color: "#888" }}>
+                From completed trips
+              </div>
+            </div>
+          </div>
+        </section>
       )}
 
       {/* (1) Driver Profile creation */}
@@ -540,7 +613,24 @@ export default function DriverDashboard() {
           marginBottom: 24,
         }}
       >
-        <h3>Available Requests</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>Available Requests</h3>
+          <button
+            onClick={fetchAvailableRequests}
+            disabled={actionLoading}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: actionLoading ? "#ccc" : "#0066ff",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: actionLoading ? "not-allowed" : "pointer",
+              fontSize: "13px"
+            }}
+          >
+            {actionLoading ? "..." : "🔄 Refresh"}
+          </button>
+        </div>
 
         {availableRequests.length === 0 ? (
           <p>No pending requests at the moment.</p>
@@ -606,7 +696,24 @@ export default function DriverDashboard() {
           borderRadius: 6,
         }}
       >
-        <h3>My Trips</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>My Trips</h3>
+          <button
+            onClick={fetchMyTrips}
+            disabled={actionLoading}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: actionLoading ? "#ccc" : "#0066ff",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: actionLoading ? "not-allowed" : "pointer",
+              fontSize: "13px"
+            }}
+          >
+            {actionLoading ? "..." : "🔄 Refresh"}
+          </button>
+        </div>
 
         {trips.length === 0 ? (
           <p>You have no trips yet.</p>

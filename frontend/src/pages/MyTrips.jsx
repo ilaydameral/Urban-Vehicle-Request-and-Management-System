@@ -114,7 +114,24 @@ export default function MyTrips() {
 
   return (
     <div style={{ padding: 20, maxWidth: 1000, margin: "0 auto" }}>
-      <h2>My Trips</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <h2 style={{ margin: 0 }}>My Trips</h2>
+        <button
+          onClick={fetchTrips}
+          disabled={loading}
+          style={{
+            padding: "8px 16px",
+            backgroundColor: loading ? "#ccc" : "#0066ff",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: loading ? "not-allowed" : "pointer",
+            fontSize: "14px"
+          }}
+        >
+          {loading ? "Refreshing..." : "🔄 Refresh"}
+        </button>
+      </div>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10 }}>
         <div style={{ fontSize: 14 }}>

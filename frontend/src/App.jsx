@@ -9,6 +9,10 @@ import DriverDashboard from "./pages/DriverDashboard";
 import AvailableRequests from "./pages/AvailableRequests";
 import MyTrips from "./pages/MyTrips";
 
+// Modern Design Components
+import LoginModern from "./pages/LoginModern";
+import PassengerDashboardModern from "./pages/PassengerDashboardModern";
+
 
 import AdminUserManagement from "./pages/AdminUserManagement";
 import AdminPendingDrivers from "./pages/AdminPendingDrivers";
@@ -183,15 +187,20 @@ export default function App() {
         {/* / artık HomePage → giriş yapmışsa role göre redirect, değilse login */}
         <Route path="/" element={<HomePage />} />
 
-        <Route path="/login" element={<LoginPage />} />
+        {/* Modern Design - New UI */}
+        <Route path="/login" element={<LoginModern />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* PASSENGER DASHBOARD */}
+        {/* Test Routes for Old Design (if you want to compare) */}
+        <Route path="/login-old" element={<LoginPage />} />
+        <Route path="/passenger-old" element={<PassengerDashboard />} />
+
+        {/* PASSENGER DASHBOARD - Modern Design */}
         <Route
           path="/passenger"
           element={
             <ProtectedRoute allowedRoles={["PASSENGER"]}>
-              <PassengerDashboard />
+              <PassengerDashboardModern />
             </ProtectedRoute>
           }
         />
@@ -233,7 +242,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/* COORDINATOR DASHBOARD */} 
+        {/* COORDINATOR DASHBOARD */}
         <Route
           path="/coordinator"
           element={
@@ -252,7 +261,7 @@ export default function App() {
           }
         />
         {/* ADMIN DASHBOARD & ALT SAYFALAR */}
-        
+
         {/* ADMIN */}
         <Route
           path="/admin/users"
@@ -336,7 +345,7 @@ export default function App() {
 
 
       </Routes>
-      
+
 
 
     </div>
