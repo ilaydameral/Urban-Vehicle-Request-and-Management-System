@@ -182,7 +182,7 @@ async function getStats(req, res) {
     const tripStatusRaw = await Trip.aggregate([
       {
         $group: {
-          _id: "$status",
+          _id: "$tripStatus",
           count: { $sum: 1 },
         },
       },
@@ -282,7 +282,7 @@ async function checkConsistency(req, res) {
 
       if (t.request && requestStatusMap.has(String(t.request))) {
         const reqStatus = requestStatusMap.get(String(t.request));
-        const tripStatus = t.status;
+        const tripStatus = t.tripStatus || t.status;
 
         if (
           (tripStatus === "COMPLETED" && reqStatus !== "COMPLETED") ||
@@ -347,17 +347,48 @@ async function overrideRequestStatus(req, res) {
     const trips = await Trip.find({ request: request._id });
 
     for (const trip of trips) {
-      if (status === "CANCELLED" && trip.status === "ON_GOING") {
-        trip.status = "CANCELLED";
-        trip.completedAt = new Date();
+      const currentTripStatus = trip.tripStatus || trip.status;
+
+      if (status === "CANCELLED" && !["COMPLETED", "CANCELLED"].includes(currentTripStatus)) {
+        trip.tripStatus = "CANCELLED";
+        trip.endTime = new Date();
         await trip.save();
+
+        if (trip.vehicle) {
+          await Vehicle.updateOne(
+            { _id: trip.vehicle },
+            { $set: { availabilityStatus: "AVAILABLE" } }
+          );
+        }
       }
 
-      if (status === "COMPLETED" && trip.status === "ON_GOING") {
-        const prevTripStatus = trip.status;
-        trip.status = "COMPLETED";
-        trip.completedAt = new Date();
+      if (status === "ON_GOING" && currentTripStatus === "ACCEPTED") {
+        trip.tripStatus = "ON_GOING";
+        if (!trip.startTime) {
+          trip.startTime = new Date();
+        }
         await trip.save();
+
+        if (trip.vehicle) {
+          await Vehicle.updateOne(
+            { _id: trip.vehicle },
+            { $set: { availabilityStatus: "ON_TRIP" } }
+          );
+        }
+      }
+
+      if (status === "COMPLETED" && currentTripStatus !== "COMPLETED") {
+        const prevTripStatus = currentTripStatus;
+        trip.tripStatus = "COMPLETED";
+        trip.endTime = new Date();
+        await trip.save();
+
+        if (trip.vehicle) {
+          await Vehicle.updateOne(
+            { _id: trip.vehicle },
+            { $set: { availabilityStatus: "AVAILABLE" } }
+          );
+        }
 
         if (prevTripStatus !== "COMPLETED") {
           try {
@@ -406,13 +437,23 @@ async function overrideTripStatus(req, res) {
       return res.status(404).json({ message: "Trip not found" });
     }
 
-    const previousStatus = trip.status;
-    trip.status = status;
+    const previousStatus = trip.tripStatus || trip.status;
+    trip.tripStatus = status;
 
     if (status === "COMPLETED" || status === "CANCELLED") {
-      trip.completedAt = new Date();
+      trip.endTime = new Date();
+      await Vehicle.updateOne(
+        { _id: trip.vehicle },
+        { $set: { availabilityStatus: "AVAILABLE" } }
+      );
     } else if (status === "ON_GOING") {
-      trip.completedAt = null;
+      if (!trip.startTime) {
+        trip.startTime = new Date();
+      }
+      await Vehicle.updateOne(
+        { _id: trip.vehicle },
+        { $set: { availabilityStatus: "ON_TRIP" } }
+      );
     }
 
     await trip.save();
@@ -427,8 +468,9 @@ async function overrideTripStatus(req, res) {
           } else if (status === "CANCELLED") {
             reqDoc.status = "CANCELLED";
           } else if (status === "ON_GOING") {
-            if (reqDoc.status === "PENDING") {
-              reqDoc.status = "ACCEPTED";
+            reqDoc.status = reqDoc.status === "PENDING" ? "ACCEPTED" : reqDoc.status;
+            if (reqDoc.status !== "COMPLETED") {
+              reqDoc.status = "ON_GOING";
             }
           }
           await reqDoc.save();

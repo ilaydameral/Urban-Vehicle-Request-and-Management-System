@@ -59,14 +59,16 @@ async function createTrip(req, res) {
     session.startTransaction();
 
     const existingTrip = await Trip.findOne(
-      { driver: driver._id, tripStatus: "ON_GOING" },
+      { driver: driver._id, tripStatus: { $in: ["ACCEPTED", "ON_GOING"] } },
       null,
       { session }
     );
 
     if (existingTrip) {
       await session.abortTransaction();
-      return res.status(400).json({ message: "Driver already has an ongoing trip" });
+      return res
+        .status(400)
+        .json({ message: "Driver already has an active trip" });
     }
 
     const request = await Request.findOneAndUpdate(
@@ -168,7 +170,9 @@ async function startTrip(req, res) {
     if (!driver) return res.status(404).json({ message: "Driver not found" });
 
     if (trip.driver.toString() !== driver._id.toString()) {
-      return res.status(403).json({ message: "You are not allowed to start this trip" });
+      return res
+        .status(403)
+        .json({ message: "You are not allowed to start this trip" });
     }
 
     if (!trip.request) return res.status(400).json({ message: "Trip has no request" });
@@ -180,19 +184,18 @@ async function startTrip(req, res) {
       });
     }
 
-    trip.request.status = "ON_GOING";
-    await trip.request.save();
-
     if (trip.tripStatus !== "ACCEPTED") {
       return res.status(400).json({
         message: `Trip can only be started when tripStatus is ACCEPTED (current: ${trip.tripStatus})`,
-    });
-}
+      });
+    }
 
-trip.tripStatus = "ON_GOING";
-if (!trip.startTime) trip.startTime = new Date();
-await trip.save();
+    trip.request.status = "ON_GOING";
+    await trip.request.save();
 
+    trip.tripStatus = "ON_GOING";
+    if (!trip.startTime) trip.startTime = new Date();
+    await trip.save();
 
     return res.json({ message: "Trip started", trip });
   } catch (err) {
@@ -230,7 +233,7 @@ async function completeTrip(req, res) {
     if (trip.tripStatus !== "ON_GOING") {
       await session.abortTransaction();
       return res.status(400).json({
-        message: `Only ON_GOING trips can be completed (current: ${trip.status})`,
+        message: `Only ON_GOING trips can be completed (current: ${trip.tripStatus})`,
       });
     }
 
@@ -414,7 +417,7 @@ async function getMyTrips(req, res) {
     const filter = { driver: driverProfile._id };
 
     if (status) {
-      filter.status = status;
+      filter.tripStatus = status;
     }
 
     if (from || to) {
@@ -468,7 +471,7 @@ async function getPassengerTrips(req, res) {
     };
 
     if (status) {
-      filter.status = status;
+      filter.tripStatus = status;
     }
 
     if (from || to) {
@@ -593,7 +596,7 @@ async function rateTrip(req, res) {
         .json({ message: "You are not the passenger of this trip" });
     }
 
-    if (trip.status !== "COMPLETED") {
+    if (trip.tripStatus !== "COMPLETED") {
       return res.status(400).json({
         message: "Only completed trips can be rated",
       });

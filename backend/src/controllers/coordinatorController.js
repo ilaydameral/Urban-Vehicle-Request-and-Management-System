@@ -20,7 +20,7 @@ async function getOverview(req, res) {
       .populate("passenger")
       .sort({ createdAt: 1 });
 
-    const ongoingTrips = await Trip.find({ status: "ON_GOING" })
+    const ongoingTrips = await Trip.find({ tripStatus: "ON_GOING" })
       .populate("driver")
       .populate("passenger")
       .populate("vehicle")
