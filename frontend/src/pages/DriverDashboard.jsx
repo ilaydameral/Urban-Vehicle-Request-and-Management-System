@@ -641,19 +641,19 @@ export default function DriverDashboard() {
               {trips.map((t) => (
                 <tr key={t._id}>
                   <td style={{ padding: "6px 4px" }}>
-                    {t.request?.passenger?.name || t.passenger?.name || "-"}
+                    {t.request?.passenger?.name || t.passengerName || "-"}
                   </td>
                   <td style={{ padding: "6px 4px" }}>
                     {t.request?.pickupAddress || t.pickupAddress || "-"}
                   </td>
                   <td style={{ padding: "6px 4px" }}>
-                    {t.request?.dropAddress || t.dropoffAddress || "-"}
+                    {t.request?.dropoffAddress || t.dropoffAddress || "-"}
                   </td>
-                  <td style={{ padding: "6px 4px" }}>{t.tripStatus}</td>
-                  <td style={{ padding: "6px 4px" }}>{formatDate(t.startTime)}</td>
-                  <td style={{ padding: "6px 4px" }}>{formatDate(t.endTime)}</td>
+                  <td style={{ padding: "6px 4px" }}>{t.status}</td>
+                  <td style={{ padding: "6px 4px" }}>{formatDate(t.startedAt)}</td>
+                  <td style={{ padding: "6px 4px" }}>{formatDate(t.completedAt)}</td>
                   <td style={{ padding: "6px 4px" }}>
-                    {t.tripStatus === "ON_GOING" ? (
+                    {t.status === "ON_GOING" ? (
                       <>
                         <button
                           onClick={() => handleCompleteTrip(t._id)}

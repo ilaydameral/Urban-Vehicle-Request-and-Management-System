@@ -414,7 +414,7 @@ async function getMyTrips(req, res) {
     const filter = { driver: driverProfile._id };
 
     if (status) {
-      filter.tripStatus = status;
+      filter.status = status;
     }
 
     if (from || to) {
@@ -435,8 +435,7 @@ async function getMyTrips(req, res) {
     const [total, trips] = await Promise.all([
       Trip.countDocuments(filter),
       Trip.find(filter)
-        .populate({ path: "request", populate: { path: "passenger" } })
-        .populate("passenger")
+        .populate("request")
         .populate("vehicle")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -469,7 +468,7 @@ async function getPassengerTrips(req, res) {
     };
 
     if (status) {
-      filter.tripStatus = status;
+      filter.status = status;
     }
 
     if (from || to) {

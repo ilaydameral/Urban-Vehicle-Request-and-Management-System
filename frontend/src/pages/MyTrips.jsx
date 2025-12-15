@@ -38,9 +38,9 @@ export default function MyTrips() {
   }, []);
 
   const counts = useMemo(() => {
-    const c = { ACCEPTED: 0, ON_GOING: 0, COMPLETED: 0, CANCELLED: 0 };
+    const c = { ON_GOING: 0, COMPLETED: 0, CANCELLED: 0 };
     for (const t of trips) {
-      if (c[t.tripStatus] !== undefined) c[t.tripStatus]++;
+      if (c[t.status] !== undefined) c[t.status]++;
     }
     return c;
   }, [trips]);
@@ -51,26 +51,29 @@ export default function MyTrips() {
     let list = [...trips];
 
     if (statusFilter !== "ALL") {
-      list = list.filter((t) => t.tripStatus === statusFilter);
+      list = list.filter((t) => t.status === statusFilter);
     }
 
     if (query) {
       list = list.filter((t) => {
         const passengerName =
-          t.request?.passenger?.name || t.passenger?.name || "";
+          t.request?.passenger?.name ||
+          t.passenger?.name ||
+          t.request?.passengerName ||
+          "";
         const passengerEmail =
           t.request?.passenger?.email || t.passenger?.email || "";
         const pickup = t.request?.pickupAddress || t.pickupAddress || "";
-        const dropoff = t.request?.dropAddress || t.dropoffAddress || "";
+        const dropoff = t.request?.dropoffAddress || t.dropoffAddress || "";
         const plate = t.vehicle?.plateNumber || "";
-        const blob = `${passengerName} ${passengerEmail} ${pickup} ${dropoff} ${plate} ${t.tripStatus}`.toLowerCase();
+        const blob = `${passengerName} ${passengerEmail} ${pickup} ${dropoff} ${plate} ${t.status}`.toLowerCase();
         return blob.includes(query);
       });
     }
 
     list.sort((a, b) => {
-      const aTime = new Date(a.createdAt || a.startTime || 0).getTime();
-      const bTime = new Date(b.createdAt || b.startTime || 0).getTime();
+      const aTime = new Date(a.createdAt || a.startedAt || 0).getTime();
+      const bTime = new Date(b.createdAt || b.startedAt || 0).getTime();
       return sort === "NEWEST" ? bTime - aTime : aTime - bTime;
     });
 
@@ -123,7 +126,6 @@ export default function MyTrips() {
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: 8 }}>
           <option value="ALL">All statuses</option>
-          <option value="ACCEPTED">ACCEPTED</option>
           <option value="ON_GOING">ON_GOING</option>
           <option value="COMPLETED">COMPLETED</option>
           <option value="CANCELLED">CANCELLED</option>
@@ -155,29 +157,32 @@ export default function MyTrips() {
               <th style={{ textAlign: "left", borderBottom: "1px solid #ccc", paddingBottom: 6 }}>Passenger</th>
               <th style={{ textAlign: "left", borderBottom: "1px solid #ccc", paddingBottom: 6 }}>Route</th>
               <th style={{ textAlign: "left", borderBottom: "1px solid #ccc", paddingBottom: 6 }}>Vehicle</th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ccc", paddingBottom: 6 }}>Started</th>
+              <th style={{ textAlign: "left", borderBottom: "1px solid #ccc", paddingBottom: 6 }}>Created</th>
               <th style={{ textAlign: "left", borderBottom: "1px solid #ccc", paddingBottom: 6 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredTrips.map((t) => {
               const passenger =
-                t.request?.passenger?.name || t.passenger?.name || "-";
+                t.request?.passenger?.name ||
+                t.passenger?.name ||
+                t.request?.passengerName ||
+                "-";
               const pickup = t.request?.pickupAddress || t.pickupAddress || "-";
-              const dropoff = t.request?.dropAddress || t.dropoffAddress || "-";
+              const dropoff = t.request?.dropoffAddress || t.dropoffAddress || "-";
               const plate = t.vehicle?.plateNumber ? t.vehicle.plateNumber.toUpperCase() : "-";
 
               return (
                 <tr key={t._id}>
-                  <td style={{ padding: "8px 4px" }}>{t.tripStatus}</td>
+                  <td style={{ padding: "8px 4px" }}>{t.status}</td>
                   <td style={{ padding: "8px 4px" }}>{passenger}</td>
                   <td style={{ padding: "8px 4px" }}>
                     {pickup} → {dropoff}
                   </td>
                   <td style={{ padding: "8px 4px" }}>{plate}</td>
-                  <td style={{ padding: "8px 4px" }}>{formatDate(t.startTime)}</td>
+                  <td style={{ padding: "8px 4px" }}>{formatDate(t.createdAt)}</td>
                   <td style={{ padding: "8px 4px" }}>
-                    {t.tripStatus === "ON_GOING" ? (
+                    {t.status === "ON_GOING" ? (
                       <>
                         <button
                           onClick={() => completeTrip(t._id)}
