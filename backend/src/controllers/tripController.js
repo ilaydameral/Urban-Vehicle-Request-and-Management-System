@@ -435,7 +435,8 @@ async function getMyTrips(req, res) {
     const [total, trips] = await Promise.all([
       Trip.countDocuments(filter),
       Trip.find(filter)
-        .populate("request")
+        .populate({ path: "request", populate: "passenger" })
+        .populate("passenger")
         .populate("vehicle")
         .sort({ createdAt: -1 })
         .skip(skip)
