@@ -1,5 +1,7 @@
+const mongoose = require("mongoose");
 const Request = require("../models/Request");
 const Trip = require("../models/Trip");
+const Vehicle = require("../models/Vehicle");
 
 async function createRequest(req, res) {
   try {
@@ -166,7 +168,6 @@ async function cancelRequest(req, res) {
     const requestId = req.params.id;
 
     const request = await Request.findById(requestId);
-
     if (!request) {
       return res.status(404).json({ message: "Request not found" });
     }
@@ -177,16 +178,66 @@ async function cancelRequest(req, res) {
         .json({ message: "You are not allowed to cancel this request" });
     }
 
-    if (request.status !== "PENDING") {
+    // Passenger iptali: raporla uyumlu şekilde PENDING + ACCEPTED
+    const cancellableStatuses = ["PENDING", "ACCEPTED"];
+
+    if (!cancellableStatuses.includes(request.status)) {
       return res.status(400).json({
-        message: "Only PENDING requests can be cancelled",
+        message: `Request cannot be cancelled in status: ${request.status}`,
       });
     }
 
-    request.status = "CANCELLED";
-    await request.save();
+    // Zaten iptal edilmişse idempotent
+    if (request.status === "CANCELLED") {
+      return res.json({ request });
+    }
 
-    return res.json({ request });
+    let session = null;
+
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+
+      // Request'i CANCELLED yap
+      request.status = "CANCELLED";
+      await request.save({ session });
+
+      // Bu request'e bağlı trip varsa onu da CANCELLED yap + aracı AVAILABLE yap
+      const trip = await Trip.findOne({ request: request._id }, null, { session });
+
+      if (trip) {
+        // Trip refactor yaptıysan: trip.tripStatus / trip.endTime
+        // Eski isimler kaldıysa: trip.status / trip.completedAt
+        const currentTripStatus = trip.tripStatus ?? trip.status;
+
+        if (currentTripStatus !== "COMPLETED" && currentTripStatus !== "CANCELLED") {
+          if (trip.tripStatus !== undefined) trip.tripStatus = "CANCELLED";
+          else trip.status = "CANCELLED";
+
+          if (trip.endTime !== undefined) trip.endTime = new Date();
+          else trip.completedAt = new Date();
+
+          await trip.save({ session });
+
+          await Vehicle.updateOne(
+            { _id: trip.vehicle },
+            { $set: { availabilityStatus: "AVAILABLE" } },
+            { session }
+          );
+        }
+      }
+
+      await session.commitTransaction();
+      return res.json({ request });
+    } catch (err) {
+      if (session) await session.abortTransaction();
+      console.error("Cancel request transaction error:", err);
+      return res
+        .status(500)
+        .json({ message: "Server error while cancelling request" });
+    } finally {
+      if (session) session.endSession();
+    }
   } catch (err) {
     console.error("Cancel request error:", err);
     return res
