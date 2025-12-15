@@ -8,7 +8,7 @@ export default function PassengerDashboard() {
 
   const [form, setForm] = useState({
     pickupAddress: "",
-    dropoffAddress: "",
+    dropAddress: "", // ✅ dropoffAddress yerine dropAddress
   });
 
   const [requests, setRequests] = useState([]);
@@ -17,7 +17,6 @@ export default function PassengerDashboard() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // Tarih formatlayıcı
   const formatDate = (iso) => {
     if (!iso) return "-";
     return new Date(iso).toLocaleString();
@@ -28,7 +27,6 @@ export default function PassengerDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Kendi request’lerini çek
   async function fetchMyRequests() {
     setLoadingList(true);
     setError("");
@@ -38,12 +36,8 @@ export default function PassengerDashboard() {
       const data = res.data;
 
       let list = [];
-      // Backend direkt array döndürebilir veya { requests: [...] } şeklinde olabilir
-      if (Array.isArray(data)) {
-        list = data;
-      } else if (Array.isArray(data?.requests)) {
-        list = data.requests;
-      }
+      if (Array.isArray(data)) list = data;
+      else if (Array.isArray(data?.requests)) list = data.requests;
 
       setRequests(list);
     } catch (err) {
@@ -57,13 +51,11 @@ export default function PassengerDashboard() {
     }
   }
 
-  // Form değişim
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Yeni request oluştur
   const handleCreateRequest = async (e) => {
     e.preventDefault();
     setError("");
@@ -73,13 +65,12 @@ export default function PassengerDashboard() {
     try {
       await api.post("/requests", {
         pickupAddress: form.pickupAddress,
-        dropoffAddress: form.dropoffAddress,
+        dropAddress: form.dropAddress, // ✅ backend’in beklediği alan
       });
 
       setSuccessMsg("Request created successfully.");
-      setForm({ pickupAddress: "", dropoffAddress: "" });
+      setForm({ pickupAddress: "", dropAddress: "" });
 
-      // Listeyi yenile
       await fetchMyRequests();
     } catch (err) {
       console.error("Error creating request", err);
@@ -92,7 +83,6 @@ export default function PassengerDashboard() {
     }
   };
 
-  // Request iptal et (sadece PENDING iken)
   async function handleCancelRequest(requestId) {
     if (!window.confirm("Are you sure you want to cancel this request?")) return;
 
@@ -119,7 +109,6 @@ export default function PassengerDashboard() {
         Welcome, <strong>{user?.name}</strong> ({user?.email})
       </p>
 
-      {/* Request oluşturma bölümü */}
       <section
         style={{
           border: "1px solid #ddd",
@@ -142,12 +131,13 @@ export default function PassengerDashboard() {
               style={{ width: "100%", padding: 8 }}
             />
           </div>
+
           <div style={{ marginBottom: 12 }}>
             <label>Dropoff Address</label>
             <input
               type="text"
-              name="dropoffAddress"
-              value={form.dropoffAddress}
+              name="dropAddress"              // ✅ input name düzeldi
+              value={form.dropAddress}        // ✅ state düzeldi
               onChange={handleChange}
               required
               style={{ width: "100%", padding: 8 }}
@@ -165,7 +155,6 @@ export default function PassengerDashboard() {
         </form>
       </section>
 
-      {/* Request listesi */}
       <section
         style={{
           border: "1px solid #ddd",
@@ -180,13 +169,7 @@ export default function PassengerDashboard() {
         ) : requests.length === 0 ? (
           <p>You have no requests yet.</p>
         ) : (
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              marginTop: 8,
-            }}
-          >
+          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
             <thead>
               <tr>
                 <th style={{ borderBottom: "1px solid #ccc", textAlign: "left", paddingBottom: 4 }}>
@@ -213,7 +196,7 @@ export default function PassengerDashboard() {
                     {req.pickupAddress}
                   </td>
                   <td style={{ borderBottom: "1px solid #eee", padding: "4px 0" }}>
-                    {req.dropoffAddress}
+                    {req.dropAddress ?? req.dropoffAddress /* ✅ eski data fallback */}
                   </td>
                   <td
                     style={{
@@ -229,10 +212,7 @@ export default function PassengerDashboard() {
                   </td>
                   <td style={{ borderBottom: "1px solid #eee", padding: "4px 0" }}>
                     {req.status === "PENDING" ? (
-                      <button
-                        onClick={() => handleCancelRequest(req._id)}
-                        disabled={loadingList}
-                      >
+                      <button onClick={() => handleCancelRequest(req._id)} disabled={loadingList}>
                         Cancel
                       </button>
                     ) : (
