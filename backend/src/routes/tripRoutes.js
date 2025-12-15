@@ -68,6 +68,7 @@ router.post(
   requireRole("PASSENGER"),
   rateTrip
 );
+
 router.patch(
   "/:id/rate",
   authMiddleware,

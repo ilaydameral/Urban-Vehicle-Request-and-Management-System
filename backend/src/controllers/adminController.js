@@ -36,7 +36,7 @@ async function listUsers(req, res) {
 
     const safeUsers = users.map((u) => ({
       _id: u._id,
-      name: user.name,
+      name: u.name,
       email: u.email,
       role: u.role,
       isActive: u.isActive !== false,
@@ -81,7 +81,7 @@ async function updateUserRole(req, res) {
     return res.json({
       user: {
         _id: user._id,
-        name: u.name,
+        name: user.name,
         email: user.email,
         role: user.role,
         isActive: user.isActive !== false,
