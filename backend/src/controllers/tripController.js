@@ -167,27 +167,70 @@ async function createTrip(req, res) {
 }
 
 async function startTrip(req, res) {
-  try {
-    const trip = await Trip.findById(req.params.id).populate("request");
+  let session = null;
 
-    if (!trip) return res.status(404).json({ message: "Trip not found" });
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    const trip = await Trip.findById(req.params.id)
+      .session(session)
+      .populate("request")
+      .populate("vehicle");
+
+    if (!trip) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: "Trip not found" });
+    }
 
     let driver;
     try {
-      driver = await assertDriverOperational(req.user.userId);
+      driver = await assertDriverOperational(req.user.userId, session);
     } catch (err) {
+      await session.abortTransaction();
       return res.status(400).json({ message: err.message });
     }
 
     if (trip.driver.toString() !== driver._id.toString()) {
+      await session.abortTransaction();
       return res
         .status(403)
         .json({ message: "You are not allowed to start this trip" });
     }
 
-    if (!trip.request) return res.status(400).json({ message: "Trip has no request" });
+    if (!trip.request) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: "Trip has no request" });
+    }
+
+    const hasOtherDriverTrip = await Trip.exists({
+      _id: { $ne: trip._id },
+      driver: driver._id,
+      tripStatus: { $in: ["ACCEPTED", "ON_GOING"] },
+    }).session(session);
+
+    if (hasOtherDriverTrip) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message: "Driver already has another active trip",
+      });
+    }
+
+    const hasOtherVehicleTrip = await Trip.exists({
+      _id: { $ne: trip._id },
+      vehicle: trip.vehicle,
+      tripStatus: { $in: ["ACCEPTED", "ON_GOING"] },
+    }).session(session);
+
+    if (hasOtherVehicleTrip) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message: "Vehicle is already assigned to another active trip",
+      });
+    }
 
     if (trip.request.status !== "ACCEPTED") {
+      await session.abortTransaction();
       return res.status(400).json({
         message: "Trip can only be started when request is ACCEPTED",
         currentRequestStatus: trip.request.status,
@@ -195,22 +238,54 @@ async function startTrip(req, res) {
     }
 
     if (trip.tripStatus !== "ACCEPTED") {
+      await session.abortTransaction();
       return res.status(400).json({
         message: `Trip can only be started when tripStatus is ACCEPTED (current: ${trip.tripStatus})`,
       });
     }
 
     trip.request.status = "ON_GOING";
-    await trip.request.save();
+    await trip.request.save({ session });
 
     trip.tripStatus = "ON_GOING";
     if (!trip.startTime) trip.startTime = new Date();
-    await trip.save();
+    await trip.save({ session });
+
+    if (trip.vehicle) {
+      await Vehicle.updateOne(
+        { _id: trip.vehicle },
+        { $set: { availabilityStatus: "ON_TRIP" } },
+        { session }
+      );
+    }
+
+    await session.commitTransaction();
 
     return res.json({ message: "Trip started", trip });
   } catch (err) {
+    try {
+      if (session) await session.abortTransaction();
+    } catch (_) {}
+
+    if (err && typeof err.message === "string") {
+      const msg = err.message.toLowerCase();
+      if (
+        msg.includes("transaction numbers are only allowed") ||
+        msg.includes("replica set")
+      ) {
+        return res.status(500).json({
+          message:
+            "MongoDB transactions require a replica set (or Atlas). Please run MongoDB as a replica set or use Atlas cluster.",
+          hint:
+            "If you are using local MongoDB, start it with --replSet and initiate rs.initiate().",
+        });
+      }
+    }
+
     console.error("Start trip error:", err);
     return res.status(500).json({ message: "Server error while starting trip" });
+  } finally {
+    if (session) session.endSession();
   }
 }
 

@@ -100,6 +100,76 @@ async function getPendingVehicles(req, res) {
   }
 }
 
+async function listVehicles(req, res) {
+  try {
+    const { isVerified, isActive, availabilityStatus, ownerDriver, from, to } =
+      req.query;
+
+    const filter = {};
+
+    if (typeof isVerified !== "undefined") {
+      filter.isVerified = isVerified === "true";
+    }
+
+    if (typeof isActive !== "undefined") {
+      filter.isActive = isActive === "true";
+    }
+
+    if (availabilityStatus) {
+      filter.availabilityStatus = availabilityStatus;
+    }
+
+    if (ownerDriver) {
+      filter.ownerDriver = ownerDriver;
+    }
+
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) {
+        const fromDate = new Date(from);
+        if (!Number.isNaN(fromDate.getTime())) filter.createdAt.$gte = fromDate;
+      }
+      if (to) {
+        const toDate = new Date(to);
+        if (!Number.isNaN(toDate.getTime())) filter.createdAt.$lte = toDate;
+      }
+      if (Object.keys(filter.createdAt).length === 0) delete filter.createdAt;
+    }
+
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limitRaw = parseInt(req.query.limit, 10) || 20;
+    const limit = Math.min(Math.max(limitRaw, 1), 100);
+    const skip = (page - 1) * limit;
+
+    const [total, vehicles] = await Promise.all([
+      Vehicle.countDocuments(filter),
+      Vehicle.find(filter)
+        .populate({
+          path: "ownerDriver",
+          populate: { path: "user", select: "name email role" },
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+    ]);
+
+    return res.json({
+      vehicles,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    console.error("Error in GET /api/vehicles:", err);
+    return res
+      .status(500)
+      .json({ message: "Server error while listing vehicles" });
+  }
+}
+
 async function verifyVehicle(req, res) {
   try {
     const vehicleId = req.params.id;
@@ -168,6 +238,7 @@ async function updateVehicleStatus(req, res) {
 module.exports = {
   createVehicle,
   getMyVehicles,
+  listVehicles,
   getPendingVehicles,
   verifyVehicle,
   updateVehicleStatus,
