@@ -7,6 +7,7 @@ const requireRole = require("../middleware/roleMiddleware");
 const {
   createVehicle,
   getMyVehicles,
+  listVehicles,
   getPendingVehicles,
   verifyVehicle,
   updateVehicleStatus,
@@ -15,6 +16,13 @@ const {
 router.post("/", authMiddleware, requireRole("DRIVER"), createVehicle);
 
 router.get("/my", authMiddleware, requireRole("DRIVER"), getMyVehicles);
+
+router.get(
+  "/",
+  authMiddleware,
+  requireRole("COORDINATOR", "ADMIN"),
+  listVehicles
+);
 
 router.get(
   "/pending",

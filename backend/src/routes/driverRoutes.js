@@ -7,6 +7,7 @@ const requireRole = require("../middleware/roleMiddleware");
 const {
   saveDriverProfile,
   getCurrentDriver,
+  listDrivers,
   listPendingDrivers,
   approveDriver,
   updateDriverStatus,
@@ -35,6 +36,13 @@ router.get(
   authMiddleware,
   requireRole("DRIVER"),
   getCurrentDriver
+);
+
+router.get(
+  "/",
+  authMiddleware,
+  requireRole("COORDINATOR", "ADMIN"),
+  listDrivers
 );
 
 /**

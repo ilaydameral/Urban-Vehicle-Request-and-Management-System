@@ -88,6 +88,64 @@ async function listPendingDrivers(req, res) {
   }
 }
 
+async function listDrivers(req, res) {
+  try {
+    const { isApproved, isActive, from, to } = req.query;
+
+    const filter = {};
+
+    if (typeof isApproved !== "undefined") {
+      filter.isApproved = isApproved === "true";
+    }
+
+    if (typeof isActive !== "undefined") {
+      filter.isActive = isActive === "true";
+    }
+
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) {
+        const fromDate = new Date(from);
+        if (!Number.isNaN(fromDate.getTime())) filter.createdAt.$gte = fromDate;
+      }
+      if (to) {
+        const toDate = new Date(to);
+        if (!Number.isNaN(toDate.getTime())) filter.createdAt.$lte = toDate;
+      }
+      if (Object.keys(filter.createdAt).length === 0) delete filter.createdAt;
+    }
+
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limitRaw = parseInt(req.query.limit, 10) || 20;
+    const limit = Math.min(Math.max(limitRaw, 1), 100);
+    const skip = (page - 1) * limit;
+
+    const [total, drivers] = await Promise.all([
+      Driver.countDocuments(filter),
+      Driver.find(filter)
+        .populate("user", "name email role")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+    ]);
+
+    return res.json({
+      drivers,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    console.error("Error in GET /api/drivers:", err);
+    return res
+      .status(500)
+      .json({ message: "Server error while listing drivers" });
+  }
+}
+
 async function approveDriver(req, res) {
   try {
     const driverId = req.params.id;
@@ -214,6 +272,7 @@ async function getDriverDashboard(req, res) {
 module.exports = {
   saveDriverProfile,
   getCurrentDriver,
+  listDrivers,
   listPendingDrivers,
   approveDriver,
   updateDriverStatus,
