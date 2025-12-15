@@ -166,12 +166,12 @@ async function getDriverDashboard(req, res) {
     const activeVehicles = vehicles.filter((v) => v.isActive !== false).length;
 
     const [ongoingTrip, completedCount, cancelledCount] = await Promise.all([
-      Trip.findOne({ driver: driver._id, status: "ON_GOING" })
+      Trip.findOne({ driver: driver._id, tripStatus: "ON_GOING" })
         .populate("request")
         .populate("passenger")
         .populate("vehicle"),
-      Trip.countDocuments({ driver: driver._id, status: "COMPLETED" }),
-      Trip.countDocuments({ driver: driver._id, status: "CANCELLED" }),
+      Trip.countDocuments({ driver: driver._id, tripStatus: "COMPLETED" }),
+      Trip.countDocuments({ driver: driver._id, tripStatus: "CANCELLED" }),
     ]);
 
     return res.json({

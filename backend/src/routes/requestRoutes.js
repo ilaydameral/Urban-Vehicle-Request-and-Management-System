@@ -69,7 +69,7 @@ router.get(
  * Kurallar:
  * - Request gerçekten var olmalı.
  * - Request ilgili yolcuya (passenger) ait olmalı.
- * - Sadece PENDING durumundaki istekler iptal edilebilir.
+ * - Sadece PENDING veya ACCEPTED durumundaki istekler iptal edilebilir.
  */
 router.patch(
   "/:id/cancel",

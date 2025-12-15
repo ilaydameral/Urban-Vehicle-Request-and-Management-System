@@ -35,12 +35,12 @@ async function getDashboard(req, res) {
 
     const tripCounts = {
       total: trips.length,
-      ongoing: trips.filter((t) => t.status === "ON_GOING").length,
-      completed: trips.filter((t) => t.status === "COMPLETED").length,
-      cancelled: trips.filter((t) => t.status === "CANCELLED").length,
+      ongoing: trips.filter((t) => t.tripStatus === "ON_GOING").length,
+      completed: trips.filter((t) => t.tripStatus === "COMPLETED").length,
+      cancelled: trips.filter((t) => t.tripStatus === "CANCELLED").length,
     };
 
-    const currentTrip = trips.find((t) => t.status === "ON_GOING") || null;
+    const currentTrip = trips.find((t) => t.tripStatus === "ON_GOING") || null;
 
     return res.json({
       passenger: {
