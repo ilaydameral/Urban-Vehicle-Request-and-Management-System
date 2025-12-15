@@ -192,7 +192,7 @@ export default function AdminGlobalRequests() {
                     padding: "4px 0",
                   }}
                 >
-                  {r.dropoffAddress}
+                  {r.dropAddress || r.dropoffAddress}
                 </td>
                 <td
                   style={{

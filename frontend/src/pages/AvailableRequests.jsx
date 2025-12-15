@@ -88,7 +88,7 @@ function AvailableRequests() {
             }}
           >
             <p><strong>Pickup:</strong> {req.pickupAddress}</p>
-            <p><strong>Dropoff:</strong> {req.dropoffAddress}</p>
+            <p><strong>Dropoff:</strong> {req.dropAddress || req.dropoffAddress}</p>
 
             <button
               onClick={() => acceptRequest(req._id)}

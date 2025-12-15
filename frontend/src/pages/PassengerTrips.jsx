@@ -50,7 +50,8 @@ export default function PassengerTrips() {
     fetchTrips();
   }, []);
 
-  const canRateTrip = (trip) => trip?.status === "COMPLETED" && !trip?.isRated;
+  const canRateTrip = (trip) =>
+    (trip?.tripstatus || trip?.status) === "COMPLETED" && !trip?.isRated;
 
   async function submitRating(tripId) {
     const rating = Number(ratingDraft[tripId]);
@@ -131,10 +132,11 @@ export default function PassengerTrips() {
             {trips.map((trip) => (
               <tr key={trip._id}>
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px 0" }}>
-                  {trip.request?.pickupAddress} → {trip.request?.dropoffAddress}
+                  {trip.request?.pickupAddress} →
+                  {trip.request?.dropAddress || trip.request?.dropoffAddress}
                 </td>
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px 0" }}>
-                  {trip.status || "-"}
+                  {trip.tripstatus || trip.status || "-"}
                 </td>
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px 0" }}>
                   {formatDate(trip.createdAt)}

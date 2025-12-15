@@ -103,7 +103,7 @@ export default function RequestDetail() {
               <b>Pickup:</b> {request.pickupAddress || "-"}
             </div>
             <div>
-              <b>Dropoff:</b> {request.dropoffAddress || "-"}
+              <b>Dropoff:</b> {request.dropAddress || request.dropoffAddress || "-"}
             </div>
 
             {request.notes ? (
@@ -123,7 +123,7 @@ export default function RequestDetail() {
                     <li key={t._id}>
                       <Link to={`/trips/${t._id}`}>{t._id}</Link>{" "}
                       <span style={{ color: "#666" }}>
-                        — {t.status || "-"} — {formatDate(t.createdAt)}
+                        — {t.tripstatus || t.status || "-"} — {formatDate(t.createdAt)}
                       </span>
                     </li>
                   ))}
