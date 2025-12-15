@@ -1,7 +1,54 @@
 const mongoose = require("mongoose");
+const Driver = require("../models/Driver");
 const Request = require("../models/Request");
 const Trip = require("../models/Trip");
 const Vehicle = require("../models/Vehicle");
+
+async function ensureDriverReadyForRequests(userId) {
+  const driver = await Driver.findOne({ user: userId });
+
+  if (!driver) {
+    return { status: 404, message: "Driver profile not found" };
+  }
+  if (!driver.isApproved) {
+    return { status: 403, message: "Driver is not approved yet" };
+  }
+  if (driver.isActive === false) {
+    return { status: 403, message: "Driver account is inactive" };
+  }
+
+  const hasAvailableVehicle = await Vehicle.exists({
+    ownerDriver: driver._id,
+    isVerified: true,
+    isActive: true,
+    $or: [
+      { availabilityStatus: "AVAILABLE" },
+      { availabilityStatus: { $exists: false } },
+    ],
+  });
+
+  if (!hasAvailableVehicle) {
+    return {
+      status: 403,
+      message:
+        "No verified and available vehicle found for this driver. Please contact coordinator.",
+    };
+  }
+
+  const hasActiveTrip = await Trip.exists({
+    driver: driver._id,
+    tripStatus: { $in: ["ACCEPTED", "ON_GOING"] },
+  });
+
+  if (hasActiveTrip) {
+    return {
+      status: 400,
+      message: "Driver already has an active trip and cannot accept new requests",
+    };
+  }
+
+  return { driver };
+}
 
 async function createRequest(req, res) {
   try {
@@ -94,6 +141,12 @@ async function getMyRequests(req, res) {
 
 async function getAvailableRequests(req, res) {
   try {
+    const eligibility = await ensureDriverReadyForRequests(req.user.userId);
+
+    if (!eligibility.driver) {
+      return res.status(eligibility.status).json({ message: eligibility.message });
+    }
+
     const requests = await Request.find({ status: "PENDING" })
       .sort({ createdAt: -1 })
       .populate("passenger");

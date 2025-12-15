@@ -4,8 +4,8 @@ const Request = require("../models/Request");
 const Driver = require("../models/Driver");
 const Vehicle = require("../models/Vehicle");
 
-async function getApprovedDriverAndVerifiedVehicle(userId) {
-  const driver = await Driver.findOne({ user: userId });
+async function assertDriverOperational(userId, session) {
+  const driver = await Driver.findOne({ user: userId }, null, { session });
 
   if (!driver) {
     throw new Error("Driver profile does not exist for this user");
@@ -16,6 +16,12 @@ async function getApprovedDriverAndVerifiedVehicle(userId) {
   if (driver.isActive === false) {
     throw new Error("Driver is not active");
   }
+
+  return driver;
+}
+
+async function getApprovedDriverAndVerifiedVehicle(userId) {
+  const driver = await assertDriverOperational(userId);
 
   const vehicle = await Vehicle.findOne({
     ownerDriver: driver._id,
@@ -166,8 +172,12 @@ async function startTrip(req, res) {
 
     if (!trip) return res.status(404).json({ message: "Trip not found" });
 
-    const driver = await Driver.findOne({ user: req.user.userId });
-    if (!driver) return res.status(404).json({ message: "Driver not found" });
+    let driver;
+    try {
+      driver = await assertDriverOperational(req.user.userId);
+    } catch (err) {
+      return res.status(400).json({ message: err.message });
+    }
 
     if (trip.driver.toString() !== driver._id.toString()) {
       return res
@@ -217,12 +227,12 @@ async function completeTrip(req, res) {
       return res.status(404).json({ message: "Trip not found" });
     }
 
-    const driverProfile = await Driver.findOne({ user: req.user.userId }, null, {
-      session,
-    });
-    if (!driverProfile) {
+    let driverProfile;
+    try {
+      driverProfile = await assertDriverOperational(req.user.userId, session);
+    } catch (err) {
       await session.abortTransaction();
-      return res.status(400).json({ message: "Driver profile not found" });
+      return res.status(400).json({ message: err.message });
     }
 
     if (String(trip.driver) !== String(driverProfile._id)) {
@@ -283,12 +293,12 @@ async function cancelTrip(req, res) {
       return res.status(404).json({ message: "Trip not found" });
     }
 
-    const driverProfile = await Driver.findOne({ user: req.user.userId }, null, {
-      session,
-    });
-    if (!driverProfile) {
+    let driverProfile;
+    try {
+      driverProfile = await assertDriverOperational(req.user.userId, session);
+    } catch (err) {
       await session.abortTransaction();
-      return res.status(400).json({ message: "Driver profile not found" });
+      return res.status(400).json({ message: err.message });
     }
 
     if (String(trip.driver) !== String(driverProfile._id)) {
@@ -411,8 +421,12 @@ async function getMyTrips(req, res) {
   try {
     const { status, from, to } = req.query;
 
-    const driverProfile = await Driver.findOne({ user: req.user.userId });
-    if (!driverProfile) return res.status(400).json({ message: "Driver profile not found" });
+    let driverProfile;
+    try {
+      driverProfile = await assertDriverOperational(req.user.userId);
+    } catch (err) {
+      return res.status(400).json({ message: err.message });
+    }
 
     const filter = { driver: driverProfile._id };
 
