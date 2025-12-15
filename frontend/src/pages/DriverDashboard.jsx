@@ -641,17 +641,26 @@ export default function DriverDashboard() {
               {trips.map((t) => (
                 <tr key={t._id}>
                   <td style={{ padding: "6px 4px" }}>
-                    {t.request?.passenger?.name || t.passengerName || "-"}
+                    {t.request?.passenger?.name ||
+                      t.passenger?.name ||
+                      t.passengerName ||
+                      "-"}
                   </td>
                   <td style={{ padding: "6px 4px" }}>
                     {t.request?.pickupAddress || t.pickupAddress || "-"}
                   </td>
                   <td style={{ padding: "6px 4px" }}>
-                    {t.request?.dropoffAddress || t.dropoffAddress || "-"}
+                    {t.request?.dropAddress || t.dropoffAddress || t.dropAddress || "-"}
                   </td>
-                  <td style={{ padding: "6px 4px" }}>{t.status}</td>
-                  <td style={{ padding: "6px 4px" }}>{formatDate(t.startedAt)}</td>
-                  <td style={{ padding: "6px 4px" }}>{formatDate(t.completedAt)}</td>
+                  <td style={{ padding: "6px 4px" }}>
+                    {t.tripStatus || t.status || "-"}
+                  </td>
+                  <td style={{ padding: "6px 4px" }}>
+                    {formatDate(t.startTime || t.startedAt)}
+                  </td>
+                  <td style={{ padding: "6px 4px" }}>
+                    {formatDate(t.endTime || t.completedAt)}
+                  </td>
                   <td style={{ padding: "6px 4px" }}>
                     {t.status === "ON_GOING" ? (
                       <>
