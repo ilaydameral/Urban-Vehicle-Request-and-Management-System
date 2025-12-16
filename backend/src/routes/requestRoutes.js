@@ -43,6 +43,23 @@ router.get(
 );
 
 /**
+ * GET /api/requests
+ * COORDINATOR ve ADMIN için tüm istekleri listeleyen endpoint.
+ *
+ * Opsiyonel query parametreleri:
+ *  - status: PENDING / ACCEPTED / COMPLETED / CANCELLED
+ *  - passengerId: belirli bir yolcunun istekleri
+ *  - from, to: tarih aralığı (ISO string, createdAt'e göre)
+ *  - page: sayfa numarası (default: 1)
+ *  - limit: sayfa başına kayıt sayısı (default: 20, max: 100)
+ *
+ * Örnek:
+ *  GET /api/requests?status=PENDING&page=1&limit=20
+ *  GET /api/requests?passengerId=6565...&from=2025-12-01&to=2025-12-10
+ */
+router.get("/", authMiddleware, requireRole("COORDINATOR", "ADMIN"), listRequests);
+
+/**
  * GET /api/requests/:id
  * Tek bir request'in detayını döner.
  *
@@ -77,22 +94,5 @@ router.patch(
   requireRole("PASSENGER"),
   cancelRequest
 );
-
-/**
- * GET /api/requests
- * COORDINATOR ve ADMIN için tüm istekleri listeleyen endpoint.
- *
- * Opsiyonel query parametreleri:
- *  - status: PENDING / ACCEPTED / COMPLETED / CANCELLED
- *  - passengerId: belirli bir yolcunun istekleri
- *  - from, to: tarih aralığı (ISO string, createdAt'e göre)
- *  - page: sayfa numarası (default: 1)
- *  - limit: sayfa başına kayıt sayısı (default: 20, max: 100)
- *
- * Örnek:
- *  GET /api/requests?status=PENDING&page=1&limit=20
- *  GET /api/requests?passengerId=6565...&from=2025-12-01&to=2025-12-10
- */
-router.get("/", authMiddleware, requireRole("COORDINATOR", "ADMIN"), listRequests);
 
 module.exports = router;

@@ -121,7 +121,7 @@ async function createTrip(req, res) {
   } catch (err) {
     try {
       if (session) await session.abortTransaction();
-    } catch (_) {}
+    } catch (_) { }
 
     if (err && typeof err.message === "string") {
       const msg = err.message.toLowerCase();
@@ -265,7 +265,7 @@ async function startTrip(req, res) {
   } catch (err) {
     try {
       if (session) await session.abortTransaction();
-    } catch (_) {}
+    } catch (_) { }
 
     if (err && typeof err.message === "string") {
       const msg = err.message.toLowerCase();
@@ -322,8 +322,25 @@ async function completeTrip(req, res) {
       });
     }
 
-    trip.tripStatus = "COMPLETED";
-    trip.endTime = new Date();
+    trip.status = "COMPLETED";
+    trip.completedAt = new Date();
+
+    // ✅ Ücret Hesaplama
+    // Süre bazlı hesaplama (startedAt - completedAt)
+    const startTime = trip.startedAt ? new Date(trip.startedAt) : trip.completedAt;
+    const endTime = trip.completedAt;
+    const durationMs = endTime - startTime;
+    const durationMinutes = Math.max(1, Math.floor(durationMs / (1000 * 60))); // En az 1 dakika
+
+    const BASE_FARE = 20; // Açılış ücreti (TL)
+    const PER_MINUTE_RATE = 5; // Dakika başı ücret (TL)
+    const MINIMUM_FARE = 50; // Minimum ücret (TL)
+
+    let calculatedFare = BASE_FARE + (durationMinutes * PER_MINUTE_RATE);
+    calculatedFare = Math.max(calculatedFare, MINIMUM_FARE); // Minimum garantisi
+
+    trip.fare = Math.round(calculatedFare * 100) / 100; // 2 ondalık basamak
+
     await trip.save({ session });
 
     if (trip.request) {
@@ -346,7 +363,7 @@ async function completeTrip(req, res) {
   } catch (err) {
     try {
       if (session) await session.abortTransaction();
-    } catch (_) {}
+    } catch (_) { }
 
     console.error("Complete trip error:", err);
     return res.status(500).json({ message: "Server error while completing trip" });
@@ -412,7 +429,7 @@ async function cancelTrip(req, res) {
   } catch (err) {
     try {
       if (session) await session.abortTransaction();
-    } catch (_) {}
+    } catch (_) { }
 
     console.error("Cancel trip error:", err);
     return res.status(500).json({ message: "Server error while cancelling trip" });

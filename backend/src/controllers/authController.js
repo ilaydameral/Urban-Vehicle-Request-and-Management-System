@@ -244,6 +244,39 @@ async function getMe(req, res) {
   }
 }
 
+// DEV ONLY: Reset password without authentication
+async function devResetPassword(req, res) {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: "Email and newPassword are required" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.isActive = true; // Ensure account is active
+    await user.save();
+
+    return res.json({
+      message: "Password reset successfully",
+      user: {
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+      },
+    });
+  } catch (err) {
+    console.error("Dev reset password error:", err);
+    return res.status(500).json({ message: "Server error during password reset" });
+  }
+}
+
 module.exports = {
   register,
   login,

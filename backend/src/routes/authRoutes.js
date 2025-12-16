@@ -26,4 +26,7 @@ router.post("/reset-password", resetPassword);
 // GET /api/auth/me
 router.get("/me", authMiddleware, getMe);
 
+// POST /api/auth/dev/reset-password (DEV ONLY)
+router.post("/dev/reset-password", devResetPassword);
+
 module.exports = router;

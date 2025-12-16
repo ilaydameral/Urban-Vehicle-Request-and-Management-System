@@ -111,6 +111,25 @@ export default function AdminPendingDrivers() {
 
       <AdminTopNav />
 
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <h2 style={{ margin: 0 }}>Pending Drivers</h2>
+        <button
+          onClick={fetchPendingDrivers}
+          disabled={loading || approvingId !== null}
+          style={{
+            padding: "6px 12px",
+            backgroundColor: (loading || approvingId !== null) ? "#ccc" : "#0066ff",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: (loading || approvingId !== null) ? "not-allowed" : "pointer",
+            fontSize: "13px"
+          }}
+        >
+          {loading ? "Refreshing..." : "🔄 Refresh"}
+        </button>
+      </div>
+
       {error && (
         <p style={{ color: "red", fontSize: 13, marginBottom: 8 }}>{error}</p>
       )}
