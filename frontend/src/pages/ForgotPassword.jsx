@@ -16,17 +16,9 @@ export default function ForgotPassword() {
 
     try {
       const res = await api.post("/auth/forgot-password", { email });
-      const msg = res?.data?.message;
-      setMessage(
-        msg ||
-          "Eğer e-posta kayıtlıysa şifre sıfırlama bağlantısı gönderildi. Gelen kutunuzu ve spam klasörünü kontrol edin."
-      );
+      setMessage(res.data?.message || "If that email is registered, reset instructions were sent.");
     } catch (err) {
-      console.error("Forgot password error", err);
-      setError(
-        err?.response?.data?.message ||
-          "Şifre sıfırlama isteği şu anda tamamlanamadı. Lütfen daha sonra tekrar deneyin."
-      );
+      setError(err?.response?.data?.message || "Request failed");
     } finally {
       setLoading(false);
     }
@@ -34,22 +26,15 @@ export default function ForgotPassword() {
 
   return (
     <div style={{ maxWidth: 420, margin: "40px auto" }}>
-      <h1>Şifremi Unuttum</h1>
-      <p style={{ marginBottom: 12 }}>
-        E-posta adresinizi girin. Eğer kayıtlıysa şifre sıfırlama bağlantısını
-        gönderelim.
-      </p>
+      <h2>Forgot Password</h2>
 
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
         <label style={{ display: "grid", gap: 6 }}>
-          E-posta
+          Email
           <input
-            type="email"
-            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="ornek@mail.com"
-            style={{ padding: "8px 10px", borderRadius: 4, border: "1px solid #ccc" }}
+            placeholder="you@example.com"
           />
         </label>
 
@@ -57,12 +42,12 @@ export default function ForgotPassword() {
         {error && <p style={{ color: "red" }}>{error}</p>}
 
         <button type="submit" disabled={loading} style={{ padding: "10px 12px" }}>
-          {loading ? "Gönderiliyor..." : "Bağlantıyı Gönder"}
+          {loading ? "Sending..." : "Send Reset Link"}
         </button>
       </form>
 
       <p style={{ marginTop: 16 }}>
-        <Link to="/login">Giriş ekranına dön</Link>
+        <Link to="/login">Back to Login</Link>
       </p>
     </div>
   );

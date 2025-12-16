@@ -142,42 +142,46 @@ async function forgotPassword(req, res) {
 
     const user = await User.findOne({ email: email.toLowerCase() });
 
+    // Güvenlik: kullanıcı yoksa da aynı mesaj dön
     if (!user) {
       return res.json({
-        message:
-          "If that email is registered, password reset instructions have been sent.",
+        message: "If that email is registered, password reset instructions have been sent.",
       });
     }
 
     const rawToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(rawToken)
-      .digest("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
 
     user.resetPasswordToken = hashedToken;
-    user.resetPasswordExpires = Date.now() + 1000 * 60 * 60;
+    user.resetPasswordExpires = Date.now() + 1000 * 60 * 60; // 1 saat
     await user.save();
 
-    const resetUrl = buildResetUrl(rawToken, user.email);
-    const greeting = user.name ? user.name.split(" ")[0] : "Merhaba";
+    const baseUrl =
+      process.env.PASSWORD_RESET_URL ||
+      process.env.FRONTEND_URL ||
+      "http://localhost:5173";
+
+    const resetLink = `${baseUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(
+      user.email
+    )}`;
 
     await sendEmail({
       to: user.email,
-      subject: "Şifre sıfırlama talebi",
-      text: `${greeting},\n\nŞifrenizi sıfırlamak için aşağıdaki bağlantıyı 1 saat içinde kullanın:\n${resetUrl}\n\nEğer bu talebi siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz.`,
-      html: `<p>${greeting},</p><p>Şifrenizi sıfırlamak için aşağıdaki bağlantıyı <strong>1 saat</strong> içinde kullanın:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Eğer bu talebi siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz.</p>`,
+      subject: "Password Reset",
+      text: `Reset your password using this link: ${resetLink}`,
+      html: `
+        <p>You requested a password reset.</p>
+        <p><a href="${resetLink}">Click here to reset your password</a></p>
+        <p>This link expires in 1 hour.</p>
+      `,
     });
 
     return res.json({
-      message:
-        "If that email is registered, password reset instructions have been sent.",
+      message: "If that email is registered, password reset instructions have been sent.",
     });
   } catch (err) {
     console.error("Forgot password error:", err);
-    return res
-      .status(500)
-      .json({ message: "Unable to process password reset request" });
+    return res.status(500).json({ message: "Unable to process password reset request" });
   }
 }
 
@@ -186,21 +190,14 @@ async function resetPassword(req, res) {
     const { token, email, password } = req.body;
 
     if (!token || !email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Token, email and new password are required" });
+      return res.status(400).json({ message: "Token, email and new password are required" });
     }
 
     if (password.length < 6) {
-      return res
-        .status(400)
-        .json({ message: "Password must be at least 6 characters long" });
+      return res.status(400).json({ message: "Password must be at least 6 characters long" });
     }
 
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(token)
-      .digest("hex");
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await User.findOne({
       email: email.toLowerCase(),
@@ -215,19 +212,13 @@ async function resetPassword(req, res) {
     user.password = await bcrypt.hash(password, 10);
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
+
     await user.save();
 
-    await sendEmail({
-      to: user.email,
-      subject: "Şifreniz güncellendi",
-      text: `${user.name},\n\nŞifreniz başarıyla güncellendi. Bu işlemi siz yapmadıysanız lütfen hemen bizimle iletişime geçin.`,
-      html: `<p>${user.name},</p><p>Şifreniz başarıyla güncellendi. Bu işlemi siz yapmadıysanız lütfen hemen bizimle iletişime geçin.</p>`,
-    });
-
-    return res.json({ message: "Password has been updated" });
+    return res.json({ message: "Password updated successfully" });
   } catch (err) {
     console.error("Reset password error:", err);
-    return res.status(500).json({ message: "Unable to reset password" });
+    return res.status(500).json({ message: "Server error during password reset" });
   }
 }
 

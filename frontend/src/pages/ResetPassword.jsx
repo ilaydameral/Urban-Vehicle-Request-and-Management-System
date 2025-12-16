@@ -14,39 +14,23 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
 
   const disabled = useMemo(() => {
-    return !token || !email;
-  }, [token, email]);
+    if (!token || !email) return true;
+    if (password.length < 6) return true;
+    if (password !== confirm) return true;
+    return false;
+  }, [token, email, password, confirm]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setMessage("");
-
-    if (password !== confirm) {
-      setError("Şifreler eşleşmiyor");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("Şifre en az 6 karakter olmalı");
-      return;
-    }
-
+    setError("");
     setLoading(true);
+
     try {
-      const res = await api.post("/auth/reset-password", {
-        token,
-        email,
-        password,
-      });
-      const msg = res?.data?.message || "Şifreniz başarıyla güncellendi.";
-      setMessage(msg);
+      const res = await api.post("/auth/reset-password", { token, email, password });
+      setMessage(res.data?.message || "Password updated successfully");
     } catch (err) {
-      console.error("Reset password error", err);
-      setError(
-        err?.response?.data?.message ||
-          "Şifre güncellenirken sorun oluştu. Lütfen bağlantınızı kontrol ederek tekrar deneyin."
-      );
+      setError(err?.response?.data?.message || "Reset failed");
     } finally {
       setLoading(false);
     }
@@ -54,49 +38,50 @@ export default function ResetPassword() {
 
   return (
     <div style={{ maxWidth: 420, margin: "40px auto" }}>
-      <h1>Şifreyi Sıfırla</h1>
+      <h2>Reset Password</h2>
 
-      {disabled ? (
+      {!token || !email ? (
         <p style={{ color: "red" }}>
-          Geçersiz bağlantı. Lütfen e-postadaki sıfırlama linkini kullanın.
+          Invalid link. Please use the reset link in your email.
         </p>
       ) : (
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
           <label style={{ display: "grid", gap: 6 }}>
-            Yeni Şifre
+            New Password
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              minLength={6}
-              required
-              style={{ padding: "8px 10px", borderRadius: 4, border: "1px solid #ccc" }}
             />
           </label>
 
           <label style={{ display: "grid", gap: 6 }}>
-            Şifre Tekrar
+            Confirm Password
             <input
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              minLength={6}
-              required
-              style={{ padding: "8px 10px", borderRadius: 4, border: "1px solid #ccc" }}
             />
           </label>
+
+          {password && password.length < 6 && (
+            <p style={{ color: "red" }}>Password must be at least 6 characters.</p>
+          )}
+          {confirm && password !== confirm && (
+            <p style={{ color: "red" }}>Passwords do not match.</p>
+          )}
 
           {message && <p style={{ color: "green" }}>{message}</p>}
           {error && <p style={{ color: "red" }}>{error}</p>}
 
-          <button type="submit" disabled={loading} style={{ padding: "10px 12px" }}>
-            {loading ? "Kaydediliyor..." : "Şifreyi Güncelle"}
+          <button type="submit" disabled={disabled || loading} style={{ padding: "10px 12px" }}>
+            {loading ? "Saving..." : "Update Password"}
           </button>
         </form>
       )}
 
       <p style={{ marginTop: 16 }}>
-        <Link to="/login">Giriş ekranına dön</Link>
+        <Link to="/login">Back to Login</Link>
       </p>
     </div>
   );

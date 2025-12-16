@@ -1,36 +1,33 @@
-const DEFAULT_SENDER = process.env.EMAIL_FROM || "no-reply@uvrms.local";
-const webhookUrl = process.env.EMAIL_WEBHOOK_URL;
+// src/utils/emailService.js
+const nodemailer = require("nodemailer");
 
-function buildPayload({ to, subject, text, html }) {
-  return {
-    from: DEFAULT_SENDER,
+const DEFAULT_SENDER = process.env.EMAIL_FROM || process.env.GMAIL_ADRESI;
+
+async function sendEmail({ to, subject, text, html }) {
+  const GMAIL_USER = process.env.GMAIL_ADRESI;
+  const GMAIL_PASS = process.env.GMAIL_SIFRESI;
+
+  if (!GMAIL_USER || !GMAIL_PASS) {
+    console.log("📧 Outgoing email (simulated — Gmail env missing):");
+    console.log(JSON.stringify({ from: DEFAULT_SENDER, to, subject, text, html }, null, 2));
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: GMAIL_USER,
+      pass: GMAIL_PASS, // App Password
+    },
+  });
+
+  await transporter.sendMail({
+    from: DEFAULT_SENDER || GMAIL_USER,
     to,
     subject,
     text,
     html,
-  };
-}
-
-async function sendEmail({ to, subject, text, html }) {
-  const payload = buildPayload({ to, subject, text, html });
-
-  if (webhookUrl) {
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(
-        `Email webhook responded with status ${response.status}: ${body}`
-      );
-    }
-  }
-
-  console.log("📧 Outgoing email (simulated if no webhook configured):");
-  console.log(JSON.stringify(payload, null, 2));
+  });
 }
 
 module.exports = { sendEmail };
