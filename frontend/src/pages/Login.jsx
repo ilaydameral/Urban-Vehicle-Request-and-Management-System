@@ -1,6 +1,6 @@
 // src/pages/Login.jsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 
@@ -114,6 +114,10 @@ export default function LoginPage() {
         <button type="submit" style={{ padding: "8px 16px" }}>
           Login
         </button>
+
+        <div style={{ marginTop: 8 }}>
+          <Link to="/forgot-password">Şifremi unuttum</Link>
+        </div>
       </form>
     </div>
   );

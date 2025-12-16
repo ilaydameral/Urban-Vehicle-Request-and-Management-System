@@ -10,3 +10,8 @@ This backend provides the APIs for the Urban Vehicle Request and Management Syst
 
 ## Frontend Impact
 All changes are additive backend safeguards or new admin/coordinator endpoints. Existing passenger and driver API shapes remain unchanged, so current frontend flows continue to work. Frontends can optionally consume the new listing endpoints when building management screens.
+
+## Environment variables for password reset mail
+- `PASSWORD_RESET_URL` (optional): Base URL for the reset link (defaults to `FRONTEND_URL` or `http://localhost:5173`).
+- `EMAIL_WEBHOOK_URL` (optional): HTTP endpoint to deliver email payloads. If omitted, emails are logged to the console.
+- `EMAIL_FROM` (optional): Sender address shown in reset emails.

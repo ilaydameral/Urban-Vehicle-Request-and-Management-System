@@ -21,6 +21,8 @@ import TripDetail from "./pages/TripDetail";
 import RequestDetail from "./pages/RequestDetail";
 import AdminStats from "./pages/AdminStats";
 import AdminConsistency from "./pages/AdminConsistency";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 import HomePage from "./pages/Home";
 import PassengerTrips from "./pages/PassengerTrips"; // ✅ yeni trip history sayfası
@@ -185,6 +187,8 @@ export default function App() {
 
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* PASSENGER DASHBOARD */}
         <Route
