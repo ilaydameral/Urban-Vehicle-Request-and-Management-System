@@ -89,6 +89,8 @@ export default function CoordinatorDashboard() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [approvingId, setApprovingId] = useState("");
+
 
   async function fetchOverview() {
     setLoading(true);
@@ -112,6 +114,28 @@ export default function CoordinatorDashboard() {
       setLoading(false);
     }
   }
+
+  async function approveDriver(driverId) {
+  const ok = window.confirm("Approve this driver?");
+  if (!ok) return;
+
+  setApprovingId(driverId);
+  setError("");
+
+  try {
+    await api.patch(`/coordinator/drivers/${driverId}/approve`);
+    await fetchOverview(); // onay sonrası listeyi yenile
+  } catch (err) {
+    console.error("Approve driver error:", err);
+    const msg =
+      err?.response?.data?.message ||
+      err?.message ||
+      "Failed to approve driver";
+    setError(msg);
+  } finally {
+    setApprovingId("");
+  }
+}
 
   useEffect(() => {
     fetchOverview();
