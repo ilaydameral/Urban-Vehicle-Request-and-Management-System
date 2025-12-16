@@ -20,6 +20,17 @@ async function getOverview(req, res) {
       .populate("passenger")
       .sort({ createdAt: 1 });
 
+    const completedRequests = await Request.find({ status: "COMPLETED" })
+      .populate("passenger")
+      .sort({ updatedAt: -1 })
+      .limit(5);
+
+    const cancelledRequests = await Request.find({ status: "CANCELLED" })
+      .populate("passenger")
+      .sort({ updatedAt: -1 })
+      .limit(5);
+      
+
     const ongoingTrips = await Trip.find({ tripStatus: "ON_GOING" })
       .populate("driver")
       .populate("passenger")
@@ -27,12 +38,12 @@ async function getOverview(req, res) {
       .populate("request")
       .sort({ createdAt: 1 });
 
-    const completedTrips = await Trip.find({ status: "COMPLETED" })
+    const completedTrips = await Trip.find({ tripStatus: "COMPLETED" })
       .populate("driver passenger vehicle")
       .sort({ updatedAt: -1 })
       .limit(5);
 
-    const cancelledTrips = await Trip.find({ status: "CANCELLED" })
+    const cancelledTrips = await Trip.find({ tripStatus: "CANCELLED" })
       .populate("driver passenger vehicle")
       .sort({ updatedAt: -1 })
       .limit(5);
@@ -41,6 +52,8 @@ async function getOverview(req, res) {
       pendingDrivers,
       pendingVehicles,
       pendingRequests,
+      completedRequests,
+      cancelledRequests,
       ongoingTrips,
       completedTrips,
       cancelledTrips,
