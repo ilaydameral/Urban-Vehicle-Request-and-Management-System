@@ -3,7 +3,7 @@ const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
 const requireRole = require("../middleware/roleMiddleware");
-const { getOverview, getResources } = require("../controllers/coordinatorController");
+const { getOverview, getResources, assignRequest } = require("../controllers/coordinatorController");
 
 router.get(
   "/overview",
@@ -17,6 +17,13 @@ router.get(
   authMiddleware,
   requireRole("COORDINATOR", "ADMIN"),
   getResources
+);
+
+router.post(
+  "/assign",
+  authMiddleware,
+  requireRole("COORDINATOR", "ADMIN"),
+  assignRequest
 );
 
 module.exports = router;

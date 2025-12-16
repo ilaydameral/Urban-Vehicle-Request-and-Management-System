@@ -81,7 +81,107 @@ async function getResources(req, res) {
   }
 }
 
+
+async function assignRequest(req, res) {
+  try {
+    const { requestId, driverId, vehicleId } = req.body;
+
+    if (!requestId || !driverId || !vehicleId) {
+      return res.status(400).json({
+        message: "requestId, driverId, and vehicleId are required",
+      });
+    }
+
+    // Verify request exists and is PENDING
+    const request = await Request.findById(requestId);
+    if (!request) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+    if (request.status !== "PENDING") {
+      return res.status(400).json({
+        message: `Request status is ${request.status}, must be PENDING`,
+      });
+    }
+
+    // Verify driver exists and is approved
+    const driver = await Driver.findById(driverId);
+    if (!driver) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
+    if (!driver.isApproved) {
+      return res.status(400).json({ message: "Driver is not approved" });
+    }
+
+    // Verify vehicle exists and is verified
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (!vehicle) {
+      return res.status(404).json({ message: "Vehicle not found" });
+    }
+    if (!vehicle.isVerified) {
+      return res.status(400).json({ message: "Vehicle is not verified" });
+    }
+
+    // Create trip using tripController's createTrip logic
+    // We'll call it programmatically
+    const Trip = require("../models/Trip");
+
+    const trip = new Trip({
+      request: requestId,
+      passenger: request.passenger,
+      driver: driverId,
+      vehicle: vehicleId,
+      tripStatus: "ACCEPTED",
+      pickupAddress: request.pickupAddress,
+      dropAddress: request.dropAddress,
+    });
+
+    await trip.save();
+
+    // Update request status
+    request.status = "ACCEPTED";
+    await request.save();
+
+    // Update vehicle availability
+    vehicle.availabilityStatus = "ON_TRIP";
+    await vehicle.save();
+
+    // Send email notifications
+    const { notifyPassengerTripAssigned, notifyDriverTripAssigned } = require("../utils/tripNotifications");
+    const User = require("../models/user");
+
+    // Get passenger user
+    const passengerUser = await User.findById(request.passenger);
+
+    // Send notifications asynchronously (don't wait)
+    Promise.all([
+      notifyPassengerTripAssigned({
+        passenger: passengerUser,
+        driver,
+        vehicle,
+        trip,
+      }),
+      notifyDriverTripAssigned({
+        driver,
+        passenger: passengerUser,
+        trip,
+        vehicle,
+      }),
+    ]).catch(err => console.error("Email notification error:", err));
+
+    return res.json({
+      message: "Trip assigned successfully",
+      trip,
+    });
+  } catch (err) {
+    console.error("Assign request error:", err);
+    return res.status(500).json({
+      message: "Server error while assigning request",
+    });
+  }
+}
+
 module.exports = {
   getOverview,
   getResources,
+  assignRequest,
 };
