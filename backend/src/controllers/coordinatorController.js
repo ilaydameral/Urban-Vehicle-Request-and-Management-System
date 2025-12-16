@@ -27,11 +27,23 @@ async function getOverview(req, res) {
       .populate("request")
       .sort({ createdAt: 1 });
 
+    const completedTrips = await Trip.find({ status: "COMPLETED" })
+      .populate("driver passenger vehicle")
+      .sort({ updatedAt: -1 })
+      .limit(5);
+
+    const cancelledTrips = await Trip.find({ status: "CANCELLED" })
+      .populate("driver passenger vehicle")
+      .sort({ updatedAt: -1 })
+      .limit(5);
+  
     return res.json({
       pendingDrivers,
       pendingVehicles,
       pendingRequests,
       ongoingTrips,
+      completedTrips,
+      cancelledTrips,
     });
   } catch (err) {
     console.error("Coordinator overview error:", err);

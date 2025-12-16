@@ -1,8 +1,8 @@
 // src/pages/AdminGlobalTrips.jsx
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 const TRIP_STATUSES = ["ON_GOING", "COMPLETED", "CANCELLED"];
 
@@ -59,11 +59,13 @@ function AdminTopNav() {
 
 export default function AdminGlobalTrips() {
   const { user } = useAuth();
-
+  const [searchParams] = useSearchParams();
   const [trips, setTrips] = useState([]);
-  const [statusFilter, setStatusFilter] = useState(""); // boş = hepsi
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const initialStatus = searchParams.get("status") || "";
+  const [statusFilter, setStatusFilter] = useState(initialStatus); // boş = hepsi
+
 
   async function fetchTrips() {
     setLoading(true);
@@ -91,6 +93,14 @@ export default function AdminGlobalTrips() {
     fetchTrips();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
+  
+  useEffect(() => {
+  const s = searchParams.get("status") || "";
+  if (s !== statusFilter) setStatusFilter(s);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [searchParams]);
+
+
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>

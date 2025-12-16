@@ -205,6 +205,17 @@ export default function CoordinatorDashboard() {
           to="/admin/trips"
           subtitle="Active trips currently in progress"
         />
+        <Card
+          title="Completed Trips"
+          value={data.completedTrips?.length || 0}
+          to="/admin/trips?status=COMPLETED"
+        />
+
+        <Card
+          title="Cancelled Trips"
+          value={data.cancelledTrips?.length || 0}
+          to="/admin/trips?status=CANCELLED"
+        />
       </div>
 
       <div style={{ marginTop: 22 }}>
