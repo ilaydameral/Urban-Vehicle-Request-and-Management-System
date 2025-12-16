@@ -47,7 +47,7 @@ export function AdminTabs() {
   const isCoordinator = role === "COORDINATOR";
 
   // Admin isterse coordinator sayfalarını da görsün istiyorsan:
-  const canSeeCoordinatorTabs = isCoordinator || isAdmin;
+  const canSeeCoordinatorTabs = isCoordinator;
 
   return (
     <div style={{ display: "flex", gap: 10, margin: "12px 0" }}>
@@ -152,18 +152,6 @@ export default function App() {
                 <Link to="/coordinator/requests" style={{ marginRight: 12 }}>
                   Coordinator – Assign Requests
                 </Link>
-                <Link to="/admin/pending-drivers" style={{ marginRight: 12 }}>
-                  Coordinator – Drivers
-                </Link>
-                <Link to="/admin/pending-vehicles" style={{ marginRight: 12 }}>
-                  Coordinator – Vehicles
-                </Link>
-                <Link to="/admin/requests" style={{ marginRight: 12 }}>
-                  Coordinator – All Requests
-                </Link>
-                <Link to="/admin/trips" style={{ marginRight: 12 }}>
-                  Coordinator – Trips
-                </Link>
               </>
             )}
 
@@ -250,7 +238,7 @@ export default function App() {
         <Route
           path="/coordinator"
           element={
-            <ProtectedRoute allowedRoles={["COORDINATOR", "ADMIN"]}>
+            <ProtectedRoute allowedRoles={["COORDINATOR"]}>
               <CoordinatorDashboard />
             </ProtectedRoute>
           }
@@ -259,7 +247,7 @@ export default function App() {
         <Route
           path="/coordinator/requests"
           element={
-            <ProtectedRoute allowedRoles={["COORDINATOR", "ADMIN"]}>
+            <ProtectedRoute allowedRoles={["COORDINATOR"]}>
               <CoordinatorRequests />
             </ProtectedRoute>
           }
