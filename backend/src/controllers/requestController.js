@@ -3,6 +3,7 @@ const Driver = require("../models/Driver");
 const Request = require("../models/Request");
 const Trip = require("../models/Trip");
 const Vehicle = require("../models/Vehicle");
+const { sendTripCancellationNotifications } = require("../utils/notificationService");
 
 async function ensureDriverReadyForRequests(userId) {
   const driver = await Driver.findOne({ user: userId });
@@ -220,7 +221,10 @@ async function cancelRequest(req, res) {
   try {
     const requestId = req.params.id;
 
-    const request = await Request.findById(requestId);
+    const request = await Request.findById(requestId).populate(
+      "passenger",
+      "name email"
+    );
     if (!request) {
       return res.status(404).json({ message: "Request not found" });
     }
@@ -256,7 +260,13 @@ async function cancelRequest(req, res) {
       await request.save({ session });
 
       // Bu request'e bağlı trip varsa onu da CANCELLED yap + aracı AVAILABLE yap
-      const trip = await Trip.findOne({ request: request._id }, null, { session });
+      const trip = await Trip.findOne({ request: request._id }, null, { session })
+        .populate({
+          path: "driver",
+          populate: { path: "user", select: "name email" },
+        })
+        .populate("vehicle")
+        .populate({ path: "passenger", select: "name email" });
 
       if (trip) {
         // Trip refactor yaptıysan: trip.tripStatus / trip.endTime
@@ -281,6 +291,17 @@ async function cancelRequest(req, res) {
       }
 
       await session.commitTransaction();
+
+      try {
+        await sendTripCancellationNotifications({
+          trip,
+          request,
+          cancelledBy: "PASSENGER",
+        });
+      } catch (notifyErr) {
+        console.error("Request cancellation notification error:", notifyErr);
+      }
+
       return res.json({ request });
     } catch (err) {
       if (session) await session.abortTransaction();

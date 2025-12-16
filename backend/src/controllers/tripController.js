@@ -3,6 +3,10 @@ const Trip = require("../models/Trip");
 const Request = require("../models/Request");
 const Driver = require("../models/Driver");
 const Vehicle = require("../models/Vehicle");
+const {
+  sendTripAssignmentNotifications,
+  sendTripCancellationNotifications,
+} = require("../utils/notificationService");
 
 async function assertDriverOperational(userId, session) {
   const driver = await Driver.findOne({ user: userId }, null, { session });
@@ -114,10 +118,19 @@ async function createTrip(req, res) {
     await session.commitTransaction();
 
     const populatedTrip = await Trip.findById(trip[0]._id)
-      .populate("request")
-      .populate({ path: "driver", populate: { path: "user" } })
-      .populate("passenger")
+      .populate({
+        path: "request",
+        populate: { path: "passenger", select: "name email" },
+      })
+      .populate({ path: "driver", populate: { path: "user", select: "name email" } })
+      .populate({ path: "passenger", select: "name email" })
       .populate("vehicle");
+
+    try {
+      await sendTripAssignmentNotifications(populatedTrip);
+    } catch (notifyErr) {
+      console.error("Trip assignment notification error:", notifyErr);
+    }
 
     return res.status(201).json({ trip: populatedTrip });
   } catch (err) {
@@ -298,7 +311,14 @@ async function completeTrip(req, res) {
     session = await mongoose.startSession();
     session.startTransaction();
 
-    const trip = await Trip.findById(req.params.id, null, { session }).populate("request");
+    const trip = await Trip.findById(req.params.id, null, { session })
+      .populate({
+        path: "request",
+        populate: { path: "passenger", select: "name email" },
+      })
+      .populate({ path: "driver", populate: { path: "user", select: "name email" } })
+      .populate("vehicle")
+      .populate({ path: "passenger", select: "name email" });
     if (!trip) {
       await session.abortTransaction();
       return res.status(404).json({ message: "Trip not found" });
@@ -376,7 +396,17 @@ async function completeTrip(req, res) {
 
 async function cancelTrip(req, res) {
   try {
-    const trip = await Trip.findById(req.params.id).populate("request");
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    const trip = await Trip.findById(req.params.id, null, { session })
+      .populate({
+        path: "request",
+        populate: { path: "passenger", select: "name email" },
+      })
+      .populate({ path: "driver", populate: { path: "user", select: "name email" } })
+      .populate("vehicle")
+      .populate({ path: "passenger", select: "name email" });
     if (!trip) {
       return res.status(404).json({ message: "Trip not found" });
     }
@@ -421,12 +451,22 @@ async function cancelTrip(req, res) {
       await trip.request.save();
     }
 
-    // Update vehicle (only if exists)
-    if (trip.vehicle) {
-      await Vehicle.updateOne(
-        { _id: trip.vehicle },
-        { $set: { availabilityStatus: "AVAILABLE" } }
-      );
+    await Vehicle.updateOne(
+      { _id: trip.vehicle },
+      { $set: { availabilityStatus: "AVAILABLE" } },
+      { session }
+    );
+
+    await session.commitTransaction();
+
+    try {
+      await sendTripCancellationNotifications({
+        trip,
+        request: trip.request,
+        cancelledBy: "DRIVER",
+      });
+    } catch (notifyErr) {
+      console.error("Trip cancellation notification error:", notifyErr);
     }
 
     return res.json({ trip });
