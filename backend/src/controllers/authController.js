@@ -74,10 +74,24 @@ async function register(req, res) {
   }
 }
 
-function buildResetUrl(token, email) {
+function buildResetUrl(req, token, email) {
+  const safeOrigin = (value) => {
+    if (!value) return null;
+    try {
+      return new URL(value).origin;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const headerOrigin = safeOrigin(req?.headers?.origin);
+  const headerReferer = safeOrigin(req?.headers?.referer);
+
   const baseUrl =
     process.env.PASSWORD_RESET_URL ||
     process.env.FRONTEND_URL ||
+    headerOrigin ||
+    headerReferer ||
     "http://localhost:5173";
 
   const sanitized = baseUrl.endsWith("/")
@@ -156,14 +170,7 @@ async function forgotPassword(req, res) {
     user.resetPasswordExpires = Date.now() + 1000 * 60 * 60; // 1 saat
     await user.save();
 
-    const baseUrl =
-      process.env.PASSWORD_RESET_URL ||
-      process.env.FRONTEND_URL ||
-      "http://localhost:5173";
-
-    const resetLink = `${baseUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(
-      user.email
-    )}`;
+    const resetLink = buildResetUrl(req, rawToken, user.email);
 
     await sendEmail({
       to: user.email,

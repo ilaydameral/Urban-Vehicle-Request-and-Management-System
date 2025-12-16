@@ -336,6 +336,9 @@ export default function App() {
           }
         />
 
+        {/* 404 fallback -> login sayfasına yönlendir */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+
 
 
 
