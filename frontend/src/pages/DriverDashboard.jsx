@@ -239,8 +239,22 @@ export default function DriverDashboard() {
         vehicleId: selectedVehicleId,
       });
 
-      setSuccessMsg("Request accepted. Trip created and started (ON_GOING).");
-      await Promise.all([fetchAvailableRequests(), fetchMyTrips()]);
+      setSuccessMsg("Request accepted. Trip created successfully.");
+
+      // Force refresh with retry to ensure backend is updated
+      setActionLoading(true);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms for backend
+
+      await fetchMyTrips();
+      await fetchAvailableRequests();
+
+      // Double-check refresh after 1 second
+      setTimeout(async () => {
+        await fetchMyTrips();
+        await fetchAvailableRequests();
+      }, 1000);
+
+      setActionLoading(false);
 
       // Auto-clear success message after 5 seconds
       setTimeout(() => setSuccessMsg(""), 5000);
@@ -252,6 +266,45 @@ export default function DriverDashboard() {
       );
       // Auto-clear error message after 5 seconds
       setTimeout(() => setError(""), 5000);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  // ACCEPTED trip → ON_GOING (Start the trip)
+  async function handleStartTrip(tripId) {
+    if (!window.confirm("Start this trip?")) return;
+
+    console.log("[handleStartTrip] Starting trip:", tripId);
+    setError("");
+    setSuccessMsg("");
+    setActionLoading(true);
+
+    try {
+      const response = await api.patch(`/trips/${tripId}/start`);
+      console.log("[handleStartTrip] Success:", response.data);
+      setSuccessMsg("Trip started successfully!");
+
+      // Auto-refresh with retry
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await fetchMyTrips();
+      await fetchAvailableRequests();
+
+      setTimeout(async () => {
+        await fetchMyTrips();
+        await fetchAvailableRequests();
+      }, 1000);
+
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } catch (err) {
+      console.error("[handleStartTrip] Error:", err);
+      console.error("[handleStartTrip] Response:", err.response?.data);
+
+      const errorMsg = err.response?.data?.message || "Failed to start trip. Please try again.";
+      setError(`Start failed: ${errorMsg}`);
+
+      // Show error longer for debugging
+      setTimeout(() => setError(""), 10000);
     } finally {
       setActionLoading(false);
     }
@@ -269,7 +322,16 @@ export default function DriverDashboard() {
     try {
       await api.patch(`/trips/${tripId}/complete`);
       setSuccessMsg("Trip completed.");
+
+      // Auto-refresh with retry
+      await new Promise(resolve => setTimeout(resolve, 300));
       await fetchMyTrips();
+      await fetchAvailableRequests();
+
+      setTimeout(async () => {
+        await fetchMyTrips();
+        await fetchAvailableRequests();
+      }, 1000);
 
       // Auto-clear success message after 5 seconds
       setTimeout(() => setSuccessMsg(""), 5000);
@@ -298,7 +360,16 @@ export default function DriverDashboard() {
     try {
       await api.patch(`/trips/${tripId}/cancel`);
       setSuccessMsg("Trip cancelled.");
+
+      // Auto-refresh with retry
+      await new Promise(resolve => setTimeout(resolve, 300));
       await fetchMyTrips();
+      await fetchAvailableRequests();
+
+      setTimeout(async () => {
+        await fetchMyTrips();
+        await fetchAvailableRequests();
+      }, 1000);
 
       // Auto-clear success message after 5 seconds
       setTimeout(() => setSuccessMsg(""), 5000);
@@ -748,7 +819,7 @@ export default function DriverDashboard() {
               {trips.map((t) => (
                 <tr key={t._id}>
                   <td style={{ padding: "6px 4px" }}>
-                    {t.request?.passenger?.name || t.passengerName || "-"}
+                    {t.passenger?.name || t.request?.passenger?.name || "-"}
                   </td>
                   <td style={{ padding: "6px 4px" }}>
                     {t.request?.pickupAddress || t.pickupAddress || "-"}
@@ -760,11 +831,26 @@ export default function DriverDashboard() {
                       t.dropoffAddress ||
                       "-"}
                   </td>
-                  <td style={{ padding: "6px 4px" }}>{t.tripstatus || t.status}</td>
-                  <td style={{ padding: "6px 4px" }}>{formatDate(t.starttime || t.startedAt)}</td>
-                  <td style={{ padding: "6px 4px" }}>{formatDate(t.endtime || t.completedAt)}</td>
+                  <td style={{ padding: "6px 4px" }}>{t.tripStatus}</td>
+                  <td style={{ padding: "6px 4px" }}>{formatDate(t.startTime)}</td>
+                  <td style={{ padding: "6px 4px" }}>{formatDate(t.endTime)}</td>
                   <td style={{ padding: "6px 4px" }}>
-                    {(t.tripstatus || t.status) === "ON_GOING" ? (
+                    {t.tripStatus === "ACCEPTED" ? (
+                      <button
+                        onClick={() => handleStartTrip(t._id)}
+                        disabled={actionLoading}
+                        style={{
+                          padding: "6px 12px",
+                          backgroundColor: "#28a745",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 4,
+                          cursor: actionLoading ? "not-allowed" : "pointer"
+                        }}
+                      >
+                        {actionLoading ? "..." : "Start"}
+                      </button>
+                    ) : t.tripStatus === "ON_GOING" ? (
                       <>
                         <button
                           onClick={() => handleCompleteTrip(t._id)}

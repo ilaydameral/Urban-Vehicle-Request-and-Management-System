@@ -83,6 +83,8 @@ async function createTrip(req, res) {
       { new: true, session }
     );
 
+    console.log(`[createTrip] Request ${requestId} updated to ACCEPTED:`, request ? `Success (new status: ${request.status})` : 'Failed - request not found or not PENDING');
+
     await Vehicle.updateOne(
       { _id: vehicle._id },
       { $set: { availabilityStatus: "ON_TRIP" } },
@@ -322,24 +324,24 @@ async function completeTrip(req, res) {
       });
     }
 
-    trip.status = "COMPLETED";
-    trip.completedAt = new Date();
+    trip.tripStatus = "COMPLETED";
+    trip.endTime = new Date();
 
     // ✅ Ücret Hesaplama
-    // Süre bazlı hesaplama (startedAt - completedAt)
-    const startTime = trip.startedAt ? new Date(trip.startedAt) : trip.completedAt;
-    const endTime = trip.completedAt;
+    // Süre bazlı hesaplama (startTime - endTime)
+    const startTime = trip.startTime ? new Date(trip.startTime) : trip.endTime;
+    const endTime = trip.endTime;
     const durationMs = endTime - startTime;
     const durationMinutes = Math.max(1, Math.floor(durationMs / (1000 * 60))); // En az 1 dakika
 
     const BASE_FARE = 20; // Açılış ücreti (TL)
     const PER_MINUTE_RATE = 5; // Dakika başı ücret (TL)
-    const MINIMUM_FARE = 50; // Minimum ücret (TL)
+    const MINIMUM_FARE = 25; // Minimum ücret (TL) - Düşürüldü 50'den 25'e
 
     let calculatedFare = BASE_FARE + (durationMinutes * PER_MINUTE_RATE);
     calculatedFare = Math.max(calculatedFare, MINIMUM_FARE); // Minimum garantisi
 
-    trip.fare = Math.round(calculatedFare * 100) / 100; // 2 ondalık basamak
+    trip.price = Math.round(calculatedFare * 100) / 100; // 2 ondalık basamak
 
     await trip.save({ session });
 
@@ -373,68 +375,64 @@ async function completeTrip(req, res) {
 }
 
 async function cancelTrip(req, res) {
-  let session = null;
-
   try {
-    session = await mongoose.startSession();
-    session.startTransaction();
-
-    const trip = await Trip.findById(req.params.id, null, { session }).populate("request");
+    const trip = await Trip.findById(req.params.id).populate("request");
     if (!trip) {
-      await session.abortTransaction();
       return res.status(404).json({ message: "Trip not found" });
     }
 
-    let driverProfile;
-    try {
-      driverProfile = await assertDriverOperational(req.user.userId, session);
-    } catch (err) {
-      await session.abortTransaction();
-      return res.status(400).json({ message: err.message });
-    }
+    const userRole = req.user.role;
+    const userId = req.user.userId;
 
-    if (String(trip.driver) !== String(driverProfile._id)) {
-      await session.abortTransaction();
-      return res.status(403).json({ message: "You are not the driver of this trip" });
+    // Check permissions: DRIVER must be the trip's driver, PASSENGER must be the trip's passenger
+    if (userRole === "DRIVER") {
+      let driverProfile;
+      try {
+        driverProfile = await assertDriverOperational(userId);
+      } catch (err) {
+        return res.status(400).json({ message: err.message });
+      }
+
+      if (String(trip.driver) !== String(driverProfile._id)) {
+        return res.status(403).json({ message: "You are not the driver of this trip" });
+      }
+    } else if (userRole === "PASSENGER") {
+      if (String(trip.passenger) !== String(userId)) {
+        return res.status(403).json({ message: "You are not the passenger of this trip" });
+      }
     }
 
     if (trip.tripStatus === "COMPLETED") {
-      await session.abortTransaction();
       return res.status(400).json({ message: "COMPLETED trip cannot be cancelled" });
     }
 
     if (trip.tripStatus === "CANCELLED") {
-      await session.commitTransaction();
       return res.json({ trip });
     }
 
+    // Update trip without transaction
     trip.tripStatus = "CANCELLED";
     trip.endTime = new Date();
-    await trip.save({ session });
+    await trip.save();
 
+    // Update request
     if (trip.request && trip.request.status !== "COMPLETED") {
       trip.request.status = "CANCELLED";
-      await trip.request.save({ session });
+      await trip.request.save();
     }
 
-    await Vehicle.updateOne(
-      { _id: trip.vehicle },
-      { $set: { availabilityStatus: "AVAILABLE" } },
-      { session }
-    );
-
-    await session.commitTransaction();
+    // Update vehicle (only if exists)
+    if (trip.vehicle) {
+      await Vehicle.updateOne(
+        { _id: trip.vehicle },
+        { $set: { availabilityStatus: "AVAILABLE" } }
+      );
+    }
 
     return res.json({ trip });
   } catch (err) {
-    try {
-      if (session) await session.abortTransaction();
-    } catch (_) { }
-
     console.error("Cancel trip error:", err);
     return res.status(500).json({ message: "Server error while cancelling trip" });
-  } finally {
-    if (session) session.endSession();
   }
 }
 
@@ -545,6 +543,7 @@ async function getMyTrips(req, res) {
       Trip.countDocuments(filter),
       Trip.find(filter)
         .populate("request")
+        .populate("passenger")
         .populate("vehicle")
         .sort({ createdAt: -1 })
         .skip(skip)

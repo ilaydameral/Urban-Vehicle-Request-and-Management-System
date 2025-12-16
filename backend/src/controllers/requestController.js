@@ -68,7 +68,7 @@ async function createRequest(req, res) {
     if (existingActiveRequest) {
       return res.status(400).json({
         message:
-          "You already have an active request. Please cancel or wait until it is completed before creating a new one.",
+          `You already have an active request (${existingActiveRequest.status}): ${existingActiveRequest.pickupAddress} → ${existingActiveRequest.dropAddress}. Please cancel or wait until it is completed before creating a new one.`,
       });
     }
 

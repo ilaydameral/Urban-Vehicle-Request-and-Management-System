@@ -274,4 +274,5 @@ module.exports = {
   getMe,
   forgotPassword,
   resetPassword,
+  devResetPassword,
 };

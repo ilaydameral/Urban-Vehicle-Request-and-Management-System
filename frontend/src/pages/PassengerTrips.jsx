@@ -19,39 +19,39 @@ export default function PassengerTrips() {
     return new Date(iso).toLocaleString();
   };
 
-  useEffect(() => {
-    async function fetchTrips() {
-      setError("");
-      setLoading(true);
-      try {
-        // Backend: GET /api/trips/my-passenger
-        const res = await api.get("/trips/my-passenger");
-        const data = res.data;
-        const list = Array.isArray(data) ? data : data?.trips || [];
-        setTrips(list);
+  async function fetchTrips() {
+    setError("");
+    setLoading(true);
+    try {
+      // Backend: GET /api/trips/my-passenger
+      const res = await api.get("/trips/my-passenger");
+      const data = res.data;
+      const list = Array.isArray(data) ? data : data?.trips || [];
+      setTrips(list);
 
-        // rating draft init
-        const init = {};
-        for (const t of list) {
-          if (typeof t?.passengerRating === "number") init[t._id] = t.passengerRating;
-        }
-        setRatingDraft((prev) => ({ ...init, ...prev }));
-      } catch (err) {
-        console.error("Error fetching passenger trips", err);
-        setError(
-          err?.response?.data?.message ||
-            "Failed to load your trips. Please try again."
-        );
-      } finally {
-        setLoading(false);
+      // rating draft init
+      const init = {};
+      for (const t of list) {
+        if (typeof t?.passengerRating === "number") init[t._id] = t.passengerRating;
       }
+      setRatingDraft((prev) => ({ ...init, ...prev }));
+    } catch (err) {
+      console.error("Error fetching passenger trips", err);
+      setError(
+        err?.response?.data?.message ||
+        "Failed to load your trips. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
+  }
 
+  useEffect(() => {
     fetchTrips();
   }, []);
 
   const canRateTrip = (trip) =>
-    (trip?.tripstatus || trip?.status) === "COMPLETED" && !trip?.isRated;
+    trip?.tripStatus === "COMPLETED" && !trip?.isRated;
 
   async function submitRating(tripId) {
     const rating = Number(ratingDraft[tripId]);
@@ -64,7 +64,6 @@ export default function PassengerTrips() {
     setRateLoading((p) => ({ ...p, [tripId]: true }));
 
     try {
-      // ✅ beklenen endpoint: PATCH /api/trips/:id/rate
       await api.patch(`/trips/${tripId}/rate`, { rating: Number(rating) });
 
       setTrips((prev) =>
@@ -76,10 +75,37 @@ export default function PassengerTrips() {
       console.error("Error rating trip", err);
       setError(
         err?.response?.data?.message ||
-          "Failed to submit rating. Please try again."
+        "Failed to submit rating. Please try again."
       );
     } finally {
       setRateLoading((p) => ({ ...p, [tripId]: false }));
+    }
+  }
+
+  async function cancelTrip(tripId) {
+    if (!window.confirm("Cancel this trip?")) return;
+
+    console.log("[cancelTrip] Cancelling trip:", tripId);
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await api.patch(`/trips/${tripId}/cancel`);
+      console.log("[cancelTrip] Success:", response.data);
+
+      // Refresh trip list
+      await fetchTrips();
+
+      // Show success message AFTER refresh
+      alert("Trip cancelled successfully!");
+    } catch (err) {
+      console.error("[cancelTrip] Error:", err);
+      console.error("[cancelTrip] Response:", err.response?.data);
+
+      const errorMsg = err.response?.data?.message || "Failed to cancel trip. Please try again.";
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -136,7 +162,7 @@ export default function PassengerTrips() {
                   {trip.request?.dropAddress || trip.request?.dropoffAddress}
                 </td>
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px 0" }}>
-                  {trip.tripstatus || trip.status || "-"}
+                  {trip.tripStatus || "-"}
                 </td>
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px 0" }}>
                   {formatDate(trip.createdAt)}
@@ -146,7 +172,23 @@ export default function PassengerTrips() {
                 </td>
 
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px 0" }}>
-                  {canRateTrip(trip) ? (
+                  {trip.tripStatus === "ACCEPTED" || trip.tripStatus === "ON_GOING" ? (
+                    <button
+                      onClick={() => cancelTrip(trip._id)}
+                      disabled={loading}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #dc3545",
+                        background: "#dc3545",
+                        color: "white",
+                        cursor: loading ? "not-allowed" : "pointer",
+                        fontSize: 14,
+                      }}
+                    >
+                      {loading ? "Cancelling..." : "Cancel Trip"}
+                    </button>
+                  ) : canRateTrip(trip) ? (
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <select
                         value={ratingDraft[trip._id] ?? ""}

@@ -53,15 +53,15 @@ export default function TripDetail() {
   }, [id]);
 
   const isPassenger = user?.role === "PASSENGER";
-  const tripStatus = trip?.tripstatus || trip?.status;
+  const tripStatus = trip?.tripStatus;
   const canRate = isPassenger && tripStatus === "COMPLETED" && !trip?.isRated;
 
   const backTo =
     user?.role === "PASSENGER"
       ? "/passenger/trips"
       : user?.role === "DRIVER"
-      ? "/driver/my-trips"
-      : "/admin/trips";
+        ? "/driver/my-trips"
+        : "/admin/trips";
 
   async function submitRating() {
     const n = Number(rating);
@@ -86,8 +86,8 @@ export default function TripDetail() {
       console.error("Rate trip error:", err);
       setError(
         err?.response?.data?.message ||
-          err?.message ||
-          "Failed to submit rating"
+        err?.message ||
+        "Failed to submit rating"
       );
     } finally {
       setRateLoading(false);
@@ -139,13 +139,21 @@ export default function TripDetail() {
               <b>Trip ID:</b> {trip._id}
             </div>
             <div>
-              <b>Status:</b> {trip.tripstatus || trip.status || "-"}
+              <b>Status:</b> {trip.tripStatus || "-"}
             </div>
             <div>
               <b>Created At:</b> {formatDate(trip.createdAt)}
             </div>
             <div>
-              <b>Fare:</b> {trip.price ?? trip.fare ?? 0}
+              <b>Started At:</b> {formatDate(trip.startTime)}
+            </div>
+            {trip.endTime && (
+              <div>
+                <b>Completed At:</b> {formatDate(trip.endTime)}
+              </div>
+            )}
+            <div>
+              <b>Price:</b> {trip.price ?? 0} TL
             </div>
 
             {/* ✅ Passenger Rating */}

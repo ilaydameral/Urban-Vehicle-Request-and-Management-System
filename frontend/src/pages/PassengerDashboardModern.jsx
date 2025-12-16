@@ -8,7 +8,7 @@ export default function PassengerDashboardModern() {
 
     const [form, setForm] = useState({
         pickupAddress: "",
-        dropoffAddress: "",
+        dropAddress: "",
     });
 
     const [requests, setRequests] = useState([]);
@@ -56,11 +56,11 @@ export default function PassengerDashboardModern() {
         try {
             await api.post("/requests", {
                 pickupAddress: form.pickupAddress,
-                dropoffAddress: form.dropoffAddress,
+                dropAddress: form.dropAddress,
             });
 
             setSuccessMsg("Request created successfully!");
-            setForm({ pickupAddress: "", dropoffAddress: "" });
+            setForm({ pickupAddress: "", dropAddress: "" });
             await fetchMyRequests();
 
             // Auto-clear success message
@@ -151,8 +151,8 @@ export default function PassengerDashboardModern() {
                                     </div>
                                     <input
                                         type="text"
-                                        name="dropoffAddress"
-                                        value={form.dropoffAddress}
+                                        name="dropAddress"
+                                        value={form.dropAddress}
                                         onChange={handleChange}
                                         placeholder="Dropoff location"
                                         required
@@ -257,7 +257,7 @@ export default function PassengerDashboardModern() {
                                                         <span className="text-sm text-gray-600">Dropoff</span>
                                                     </div>
                                                     <p className="font-semibold text-midnight-900">
-                                                        {req.dropoffAddress}
+                                                        {req.dropAddress}
                                                     </p>
                                                 </div>
 
@@ -273,7 +273,7 @@ export default function PassengerDashboardModern() {
                                                     {formatDate(req.createdAt)}
                                                 </span>
 
-                                                {req.status === "PENDING" && (
+                                                {(req.status === "PENDING" || req.status === "ACCEPTED") && (
                                                     <button
                                                         onClick={() => handleCancelRequest(req._id)}
                                                         className="text-sm text-error font-semibold hover:underline"

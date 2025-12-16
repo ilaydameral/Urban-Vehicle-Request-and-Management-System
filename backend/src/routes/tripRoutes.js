@@ -35,7 +35,7 @@ router.patch(
 router.patch(
   "/:id/cancel",
   authMiddleware,
-  requireRole("DRIVER"),
+  requireRole("DRIVER", "PASSENGER"),
   cancelTrip
 );
 

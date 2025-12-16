@@ -79,8 +79,8 @@ export default function MyTrips() {
     }
 
     list.sort((a, b) => {
-      const aTime = new Date(a.createdAt || a.starttime || a.startedAt || 0).getTime();
-      const bTime = new Date(b.createdAt || b.starttime || b.startedAt || 0).getTime();
+      const aTime = new Date(a.createdAt || a.startTime || 0).getTime();
+      const bTime = new Date(b.createdAt || b.startTime || 0).getTime();
       return sort === "NEWEST" ? bTime - aTime : aTime - bTime;
     });
 
