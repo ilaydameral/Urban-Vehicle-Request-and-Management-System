@@ -1,6 +1,6 @@
 // src/pages/Login.jsx - Modern Uber-Inspired Login
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 
@@ -162,9 +162,9 @@ export default function LoginPage() {
                                 <input type="checkbox" className="mr-2 rounded" />
                                 <span className="text-gray-600">Remember me</span>
                             </label>
-                            <a href="#" className="text-brand-600 font-semibold hover:underline">
+                            <Link to="/forgot-password" className="text-brand-600 font-semibold hover:underline">
                                 Forgot password?
-                            </a>
+                            </Link>
                         </div>
 
                         {/* Submit Button */}

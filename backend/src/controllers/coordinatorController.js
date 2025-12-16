@@ -41,6 +41,47 @@ async function getOverview(req, res) {
   }
 }
 
+async function getResources(req, res) {
+  try {
+    // Get approved drivers with their user info
+    const drivers = await Driver.find({ isApproved: true })
+      .populate("user")
+      .sort({ createdAt: -1 });
+
+    // Get verified vehicles with owner driver info
+    const vehicles = await Vehicle.find({ isVerified: true })
+      .populate({
+        path: "ownerDriver",
+        populate: { path: "user" },
+      })
+      .sort({ createdAt: -1 });
+
+    // Group vehicles by driver ID
+    const vehiclesByDriver = {};
+    for (const vehicle of vehicles) {
+      const driverId = String(vehicle.ownerDriver?._id || "");
+      if (!driverId) continue;
+
+      if (!vehiclesByDriver[driverId]) {
+        vehiclesByDriver[driverId] = [];
+      }
+      vehiclesByDriver[driverId].push(vehicle);
+    }
+
+    return res.json({
+      drivers,
+      vehicles, // Keep this for compatibility
+      vehiclesByDriver, // Frontend expects this
+    });
+  } catch (err) {
+    console.error("Get resources error:", err);
+    return res
+      .status(500)
+      .json({ message: "Server error while fetching resources" });
+  }
+}
+
 module.exports = {
   getOverview,
+  getResources,
 };
