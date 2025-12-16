@@ -180,8 +180,35 @@ async function assignRequest(req, res) {
   }
 }
 
+// coordinatorController.js (EN ALT TARAF)
+
+async function approveDriver(req, res) {
+  try {
+    const { driverId } = req.params;
+
+    const driver = await Driver.findById(driverId).populate("user");
+    if (!driver) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
+
+    if (driver.isApproved) {
+      return res.json({ message: "Driver is already approved", driver });
+    }
+
+    driver.isApproved = true;
+    await driver.save();
+
+    return res.json({ message: "Driver approved successfully", driver });
+  } catch (err) {
+    console.error("Approve driver error:", err);
+    return res.status(500).json({ message: "Server error while approving driver" });
+  }
+}
+
+
 module.exports = {
   getOverview,
   getResources,
   assignRequest,
+  approveDriver,
 };
