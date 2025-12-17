@@ -275,6 +275,72 @@ async function devResetPassword(req, res) {
   }
 }
 
+async function updateProfile(req, res) {
+  try {
+    const { name, email, profileImage } = req.body;
+    const userId = req.user.userId;
+
+    console.log("📝 Profile update request:", {
+      userId,
+      name,
+      email,
+      hasProfileImage: !!profileImage,
+      imageSize: profileImage?.length
+    });
+
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update name
+    user.name = name.trim();
+
+    // Update email if provided and different
+    if (email && email.toLowerCase() !== user.email.toLowerCase()) {
+      // Check if new email is already taken
+      const existingUser = await User.findOne({
+        email: email.toLowerCase(),
+        _id: { $ne: userId }
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ message: "Email is already in use" });
+      }
+
+      user.email = email.toLowerCase();
+    }
+
+    // Update profile image if provided
+    if (profileImage) {
+      console.log("🖼️ Updating profile image, size:", profileImage.length);
+      user.profileImage = profileImage;
+    }
+
+    await user.save();
+
+    console.log("✅ Profile updated successfully for user:", userId);
+
+    return res.json({
+      message: "Profile updated successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profileImage: user.profileImage,
+      },
+    });
+  } catch (err) {
+    console.error("Update profile error:", err);
+    return res.status(500).json({ message: "Server error while updating profile" });
+  }
+}
+
 module.exports = {
   register,
   login,
@@ -282,4 +348,5 @@ module.exports = {
   forgotPassword,
   resetPassword,
   devResetPassword,
+  updateProfile,
 };

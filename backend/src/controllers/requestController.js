@@ -142,12 +142,18 @@ async function getMyRequests(req, res) {
 
 async function getAvailableRequests(req, res) {
   try {
-    const eligibility = await ensureDriverReadyForRequests(req.user.userId);
+    // Just verify driver exists and is approved
+    const driver = await Driver.findOne({ user: req.user.userId });
 
-    if (!eligibility.driver) {
-      return res.status(eligibility.status).json({ message: eligibility.message });
+    if (!driver) {
+      return res.status(404).json({ message: "Driver profile not found" });
     }
 
+    if (!driver.isApproved) {
+      return res.status(403).json({ message: "Driver is not approved yet" });
+    }
+
+    // Get all PENDING requests
     const requests = await Request.find({ status: "PENDING" })
       .sort({ createdAt: -1 })
       .populate("passenger");

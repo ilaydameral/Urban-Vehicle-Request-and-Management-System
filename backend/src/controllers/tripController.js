@@ -332,7 +332,7 @@ async function completeTrip(req, res) {
       return res.status(400).json({ message: err.message });
     }
 
-    if (String(trip.driver) !== String(driverProfile._id)) {
+    if (String(trip.driver?._id || trip.driver) !== String(driverProfile._id)) {
       await session.abortTransaction();
       return res.status(403).json({ message: "You are not the driver of this trip" });
     }
@@ -349,19 +349,30 @@ async function completeTrip(req, res) {
 
     // ✅ Ücret Hesaplama
     // Süre bazlı hesaplama (startTime - endTime)
+    if (!trip.startTime) {
+      console.error(`⚠️ Trip ${trip._id} has no startTime! Using endTime as fallback.`);
+    }
+
     const startTime = trip.startTime ? new Date(trip.startTime) : trip.endTime;
     const endTime = trip.endTime;
     const durationMs = endTime - startTime;
     const durationMinutes = Math.max(1, Math.floor(durationMs / (1000 * 60))); // En az 1 dakika
 
+    console.log(`💰 Fare Calculation for Trip ${trip._id}:`);
+    console.log(`   Start: ${startTime.toISOString()}`);
+    console.log(`   End: ${endTime.toISOString()}`);
+    console.log(`   Duration: ${durationMinutes} minutes`);
+
     const BASE_FARE = 20; // Açılış ücreti (TL)
     const PER_MINUTE_RATE = 5; // Dakika başı ücret (TL)
-    const MINIMUM_FARE = 25; // Minimum ücret (TL) - Düşürüldü 50'den 25'e
+    const MINIMUM_FARE = 25; // Minimum ücret (TL)
 
     let calculatedFare = BASE_FARE + (durationMinutes * PER_MINUTE_RATE);
     calculatedFare = Math.max(calculatedFare, MINIMUM_FARE); // Minimum garantisi
 
     trip.price = Math.round(calculatedFare * 100) / 100; // 2 ondalık basamak
+
+    console.log(`   Calculated Fare: ${trip.price} TL`);
 
     await trip.save({ session });
 

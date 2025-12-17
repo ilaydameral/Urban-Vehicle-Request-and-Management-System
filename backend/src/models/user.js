@@ -35,6 +35,11 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
+    profileImage: {
+      type: String,
+      default: "",
+    },
+
     resetPasswordToken: {
       type: String,
     },
