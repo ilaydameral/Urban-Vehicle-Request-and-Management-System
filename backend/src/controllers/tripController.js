@@ -347,32 +347,46 @@ async function completeTrip(req, res) {
     trip.tripStatus = "COMPLETED";
     trip.endTime = new Date();
 
-    // ✅ Ücret Hesaplama
-    // Süre bazlı hesaplama (startTime - endTime)
-    if (!trip.startTime) {
-      console.error(`⚠️ Trip ${trip._id} has no startTime! Using endTime as fallback.`);
+    // ✅ Ücret Hesaplama - KM Bazlı
+    // Haversine formülü ile mesafe hesaplama
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+      const R = 6371; // Earth radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c; // Distance in km
+    };
+
+    let distanceKm = 0;
+    if (trip.request?.pickupLat && trip.request?.pickupLng &&
+      trip.request?.dropLat && trip.request?.dropLng) {
+      distanceKm = calculateDistance(
+        trip.request.pickupLat,
+        trip.request.pickupLng,
+        trip.request.dropLat,
+        trip.request.dropLng
+      );
     }
 
-    const startTime = trip.startTime ? new Date(trip.startTime) : trip.endTime;
-    const endTime = trip.endTime;
-    const durationMs = endTime - startTime;
-    const durationMinutes = Math.max(1, Math.floor(durationMs / (1000 * 60))); // En az 1 dakika
-
     console.log(`💰 Fare Calculation for Trip ${trip._id}:`);
-    console.log(`   Start: ${startTime.toISOString()}`);
-    console.log(`   End: ${endTime.toISOString()}`);
-    console.log(`   Duration: ${durationMinutes} minutes`);
+    console.log(`   Pickup: (${trip.request?.pickupLat}, ${trip.request?.pickupLng})`);
+    console.log(`   Drop: (${trip.request?.dropLat}, ${trip.request?.dropLng})`);
+    console.log(`   Distance: ${distanceKm.toFixed(2)} km`);
 
     const BASE_FARE = 20; // Açılış ücreti (TL)
-    const PER_MINUTE_RATE = 5; // Dakika başı ücret (TL)
-    const MINIMUM_FARE = 25; // Minimum ücret (TL)
+    const PER_KM_RATE = 8; // KM başı ücret (TL)
+    const MINIMUM_FARE = 30; // Minimum ücret (TL)
 
-    let calculatedFare = BASE_FARE + (durationMinutes * PER_MINUTE_RATE);
+    let calculatedFare = BASE_FARE + (distanceKm * PER_KM_RATE);
     calculatedFare = Math.max(calculatedFare, MINIMUM_FARE); // Minimum garantisi
 
     trip.price = Math.round(calculatedFare * 100) / 100; // 2 ondalık basamak
 
-    console.log(`   Calculated Fare: ${trip.price} TL`);
+    console.log(`   Calculated Fare: ${trip.price} TL (${distanceKm.toFixed(2)} km x ${PER_KM_RATE} TL/km + ${BASE_FARE} TL base)`);
 
     await trip.save({ session });
 

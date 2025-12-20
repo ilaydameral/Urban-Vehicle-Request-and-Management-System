@@ -23,7 +23,7 @@ const requestSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["PENDING", "ACCEPTED", "ON_GOING", "CANCELLED", "COMPLETED"],
+      enum: ["PENDING", "ACCEPTED", "ON_GOING", "CANCELLED", "COMPLETED", "REJECTED"],
       default: "PENDING",
     },
 
@@ -32,6 +32,15 @@ const requestSchema = new mongoose.Schema(
     pickupLng: { type: Number },
     dropLat: { type: Number },
     dropLng: { type: Number },
+
+    // Rejection tracking
+    rejectedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Driver",
+    },
+    rejectedAt: {
+      type: Date,
+    },
 
   },
   { timestamps: true }

@@ -239,7 +239,12 @@ async function cancelRequest(req, res) {
       return res.status(404).json({ message: "Request not found" });
     }
 
-    if (request.passenger.toString() !== req.user.userId) {
+    // Check passenger ownership: handle both populated and non-populated
+    const passengerId = request.passenger._id
+      ? request.passenger._id.toString()
+      : request.passenger.toString();
+
+    if (passengerId !== req.user.userId) {
       return res
         .status(403)
         .json({ message: "You are not allowed to cancel this request" });
@@ -385,11 +390,61 @@ async function listRequests(req, res) {
   }
 }
 
+/**
+ * Reject a request (Driver)
+ * This allows driver to reject a PENDING request without starting a trip
+ */
+async function rejectRequest(req, res) {
+  try {
+    const requestId = req.params.id;
+
+    // Verify driver exists and is approved
+    const driver = await Driver.findOne({ user: req.user.userId });
+    if (!driver) {
+      return res.status(404).json({ message: "Driver profile not found" });
+    }
+
+    if (!driver.isApproved) {
+      return res.status(403).json({ message: "Driver is not approved yet" });
+    }
+
+    // Find the request
+    const request = await Request.findById(requestId);
+    if (!request) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    // Only PENDING requests can be rejected
+    if (request.status !== "PENDING") {
+      return res.status(400).json({
+        message: `Cannot reject request in status: ${request.status}. Only PENDING requests can be rejected.`,
+      });
+    }
+
+    // Mark request as REJECTED
+    request.status = "REJECTED";
+    request.rejectedBy = driver._id; // Optional: track which driver rejected
+    request.rejectedAt = new Date();
+    await request.save();
+
+    return res.json({
+      message: "Request rejected successfully",
+      request,
+    });
+  } catch (err) {
+    console.error("Reject request error:", err);
+    return res.status(500).json({
+      message: "Server error while rejecting request",
+    });
+  }
+}
+
 module.exports = {
   createRequest,
   getMyRequests,
   getAvailableRequests,
   getRequestDetail,
   cancelRequest,
+  rejectRequest,
   listRequests,
 };

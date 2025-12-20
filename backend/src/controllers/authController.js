@@ -65,6 +65,7 @@ async function register(req, res) {
         email: user.email,
         role: user.role,
         isActive: user.isActive,
+        profileImage: user.profileImage,
       },
       token,
     });
@@ -137,6 +138,7 @@ async function login(req, res) {
         email: user.email,
         role: user.role,
         isActive: user.isActive,
+        profileImage: user.profileImage,
       },
       token,
     });

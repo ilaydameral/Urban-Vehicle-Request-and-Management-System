@@ -8,6 +8,7 @@ const {
   getAvailableRequests,
   getRequestDetail,
   cancelRequest,
+  rejectRequest,
   listRequests,
 } = require("../controllers/requestController");
 
@@ -93,6 +94,22 @@ router.patch(
   authMiddleware,
   requireRole("PASSENGER"),
   cancelRequest
+);
+
+/**
+ * PATCH /api/requests/:id/reject
+ * DRIVER bir PENDING talebi reddeder.
+ *
+ * Kurallar:
+ * - Driver onaylı (approved) olmalı.
+ * - Request PENDING durumunda olmalı.
+ * - Request REJECTED olarak işaretlenir.
+ */
+router.patch(
+  "/:id/reject",
+  authMiddleware,
+  requireRole("DRIVER"),
+  rejectRequest
 );
 
 module.exports = router;

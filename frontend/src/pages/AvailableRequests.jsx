@@ -60,6 +60,35 @@ function AvailableRequests() {
     }
   };
 
+  // Reject request → marks as REJECTED
+  const rejectRequest = async (requestId) => {
+    try {
+      setLoadingId(requestId);
+      setError("");
+
+      const res = await axios.patch(
+        `http://localhost:5001/api/requests/${requestId}/reject`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      alert("Request rejected successfully!");
+      console.log("Request rejected:", res.data);
+
+      // Refresh list after rejecting
+      fetchRequests();
+    } catch (err) {
+      console.error("Error rejecting request:", err);
+      setError(err.response?.data?.message || "Error rejecting request");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   return (
     <div style={{ padding: "20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
@@ -107,21 +136,39 @@ function AvailableRequests() {
             <p><strong>Pickup:</strong> {req.pickupAddress}</p>
             <p><strong>Dropoff:</strong> {req.dropAddress || req.dropoffAddress}</p>
 
-            <button
-              onClick={() => acceptRequest(req._id)}
-              disabled={loadingId === req._id}
-              style={{
-                marginTop: "10px",
-                padding: "8px 12px",
-                backgroundColor: loadingId === req._id ? "#888" : "#0066ff",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                cursor: loadingId === req._id ? "not-allowed" : "pointer",
-              }}
-            >
-              {loadingId === req._id ? "Accepting..." : "Accept Request"}
-            </button>
+            <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+              <button
+                onClick={() => acceptRequest(req._id)}
+                disabled={loadingId === req._id}
+                style={{
+                  padding: "8px 12px",
+                  backgroundColor: loadingId === req._id ? "#888" : "#0066ff",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: loadingId === req._id ? "not-allowed" : "pointer",
+                  flex: 1,
+                }}
+              >
+                {loadingId === req._id ? "Processing..." : "✅ Accept Request"}
+              </button>
+
+              <button
+                onClick={() => rejectRequest(req._id)}
+                disabled={loadingId === req._id}
+                style={{
+                  padding: "8px 12px",
+                  backgroundColor: loadingId === req._id ? "#888" : "#dc2626",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: loadingId === req._id ? "not-allowed" : "pointer",
+                  flex: 1,
+                }}
+              >
+                {loadingId === req._id ? "Processing..." : "❌ Reject"}
+              </button>
+            </div>
           </li>
         ))}
       </ul>
