@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import RidePlannerMap from "../components/RidePlannerMap";
 
 export default function PassengerDashboardModern() {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
 
     const [form, setForm] = useState({
         pickupAddress: "",
@@ -140,13 +140,15 @@ export default function PassengerDashboardModern() {
             });
 
             console.log("✅ Update successful:", res.data);
+
+            // Update user in AuthContext
+            updateUser(res.data.user);
+
             setSuccessMsg("Profile updated successfully!");
             setEditMode(false);
 
-            // Update user context if needed (reload page or update context)
-            setTimeout(() => {
-                window.location.reload(); // Simple approach to refresh user data
-            }, 1000);
+            // Auto-clear success message
+            setTimeout(() => setSuccessMsg(""), 3000);
         } catch (err) {
             console.error("❌ Update failed:", err);
             console.error("Error details:", err.response?.data);

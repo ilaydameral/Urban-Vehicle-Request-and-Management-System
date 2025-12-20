@@ -56,7 +56,11 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const value = { user, loading, login, logout };
+  const updateUser = (userData) => {
+    setUser(normalizeUser(userData));
+  };
+
+  const value = { user, loading, login, logout, updateUser };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

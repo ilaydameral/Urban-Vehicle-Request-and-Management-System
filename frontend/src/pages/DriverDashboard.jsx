@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import DriverTripMap from "../components/DriverTripMap";
+
 
 export default function DriverDashboard() {
   const { user, logout } = useAuth();
@@ -263,6 +265,42 @@ export default function DriverDashboard() {
       setError(
         err.response?.data?.message ||
         "Failed to accept request. Please try again."
+      );
+      // Auto-clear error message after 5 seconds
+      setTimeout(() => setError(""), 5000);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  // REJECT request → marks as REJECTED
+  async function handleRejectRequest(requestId) {
+    if (!window.confirm("Reject this request?")) return;
+
+    setError("");
+    setSuccessMsg("");
+    setActionLoading(true);
+
+    try {
+      await api.patch(`/requests/${requestId}/reject`);
+      setSuccessMsg("Request rejected successfully.");
+
+      // Immediate refresh with retry (like accept)
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await fetchAvailableRequests();
+
+      // Double-check refresh after 1 second
+      setTimeout(async () => {
+        await fetchAvailableRequests();
+      }, 1000);
+
+      // Auto-clear success message after 5 seconds
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } catch (err) {
+      console.error("Error rejecting request", err);
+      setError(
+        err.response?.data?.message ||
+        "Failed to reject request. Please try again."
       );
       // Auto-clear error message after 5 seconds
       setTimeout(() => setError(""), 5000);
@@ -746,17 +784,44 @@ export default function DriverDashboard() {
                   <td style={{ padding: "6px 4px" }}>{formatDate(r.createdAt)}</td>
                   <td style={{ padding: "6px 4px" }}>{r.status}</td>
                   <td style={{ padding: "6px 4px" }}>
-                    <button
-                      onClick={() => handleAcceptRequest(r._id)}
-                      disabled={
-                        actionLoading ||
-                        !selectedVehicleId ||
-                        !driverProfile ||
-                        !canDrive
-                      }
-                    >
-                      {actionLoading ? "Processing..." : "Accept"}
-                    </button>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        onClick={() => handleAcceptRequest(r._id)}
+                        disabled={
+                          actionLoading ||
+                          !selectedVehicleId ||
+                          !driverProfile ||
+                          !canDrive
+                        }
+                        style={{
+                          padding: "6px 12px",
+                          backgroundColor: actionLoading || !selectedVehicleId || !driverProfile || !canDrive ? "#ccc" : "#0066ff",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: actionLoading || !selectedVehicleId || !driverProfile || !canDrive ? "not-allowed" : "pointer",
+                          fontSize: "13px"
+                        }}
+                      >
+                        {actionLoading ? "..." : "Accept"}
+                      </button>
+
+                      <button
+                        onClick={() => handleRejectRequest(r._id)}
+                        disabled={actionLoading}
+                        style={{
+                          padding: "6px 12px",
+                          backgroundColor: actionLoading ? "#ccc" : "#dc2626",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: actionLoading ? "not-allowed" : "pointer",
+                          fontSize: "13px"
+                        }}
+                      >
+                        {actionLoading ? "..." : "Reject"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -764,6 +829,53 @@ export default function DriverDashboard() {
           </table>
         )}
       </section>
+
+      {/* (4.5) Active Trip with Live Map */}
+      {trips.filter(t => t.tripStatus === "ON_GOING").length > 0 && (
+        <section
+          style={{
+            border: "2px solid #0066ff",
+            padding: 16,
+            borderRadius: 8,
+            marginBottom: 24,
+            backgroundColor: "#f0f8ff",
+          }}
+        >
+          <h3 style={{ marginTop: 0, marginBottom: 16, color: "#0066ff" }}>
+            🚗 Active Trip - Live Tracking
+          </h3>
+          {trips
+            .filter(t => t.tripStatus === "ON_GOING")
+            .map(trip => (
+              <div key={trip._id}>
+                <DriverTripMap
+                  trip={trip}
+                  onTripComplete={handleCompleteTrip}
+                />
+
+                {/* Manual Complete Button (fallback) */}
+                <div style={{ marginTop: "16px", textAlign: "center" }}>
+                  <button
+                    onClick={() => handleCompleteTrip(trip._id)}
+                    disabled={actionLoading}
+                    style={{
+                      padding: "10px 24px",
+                      backgroundColor: actionLoading ? "#ccc" : "#28a745",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      cursor: actionLoading ? "not-allowed" : "pointer",
+                      fontSize: "14px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {actionLoading ? "Completing..." : "✅ Complete Trip Now"}
+                  </button>
+                </div>
+              </div>
+            ))}
+        </section>
+      )}
 
       {/* (5) My Trips */}
       <section

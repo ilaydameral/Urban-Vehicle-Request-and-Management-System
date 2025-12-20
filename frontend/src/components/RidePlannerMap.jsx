@@ -34,6 +34,17 @@ export default function RidePlannerMap({
     if (!pickupCoords || !dropCoords) return;
 
     if (!window.google) return;
+    if (!pickupCoords || !dropCoords) {
+      console.log("🔴 calculateRoute: Missing coords", { pickupCoords, dropCoords });
+      return;
+    }
+
+    if (!window.google) {
+      console.log("🔴 calculateRoute: Google Maps not loaded");
+      return;
+    }
+
+    console.log("🟢 calculateRoute: Starting route calculation", { pickupCoords, dropCoords });
 
     // eslint-disable-next-line no-undef
     const directionsService = new google.maps.DirectionsService();
@@ -50,6 +61,7 @@ export default function RidePlannerMap({
         },
       });
 
+      console.log("✅ Directions result:", results);
       setDirectionsResponse(results);
 
       if (results.routes.length > 0) {
@@ -60,10 +72,11 @@ export default function RidePlannerMap({
           distanceValue: leg.distance.value,
           durationValue: leg.duration_in_traffic ? leg.duration_in_traffic.value : leg.duration.value,
         };
+        console.log("📊 Route summary:", summary);
         if (onRouteChange) onRouteChange(summary);
       }
     } catch (error) {
-      console.error("Google Maps Routing Error:", error);
+      console.error("❌ Google Maps Routing Error:", error);
     }
   };
 
@@ -233,7 +246,20 @@ export default function RidePlannerMap({
           {dropCoords && <Marker position={dropCoords} label="D" />}
 
           {directionsResponse && (
-            <DirectionsRenderer directions={directionsResponse} />
+            <>
+              {console.log("🗺️ Rendering DirectionsRenderer with:", directionsResponse)}
+              <DirectionsRenderer
+                directions={directionsResponse}
+                options={{
+                  suppressMarkers: true,
+                  polylineOptions: {
+                    strokeColor: "#0066ff",
+                    strokeOpacity: 0.8,
+                    strokeWeight: 6,
+                  },
+                }}
+              />
+            </>
           )}
         </GoogleMap>
       </div>
