@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api/client";
+import MapViewer from "../components/MapViewer";
 
 function formatDate(iso) {
   if (!iso) return "-";
@@ -25,8 +26,8 @@ export default function RequestDetail() {
       console.error("Request detail error:", err);
       setError(
         err?.response?.data?.message ||
-          err?.message ||
-          "Failed to load request detail"
+        err?.message ||
+        "Failed to load request detail"
       );
     } finally {
       setLoading(false);
@@ -78,6 +79,14 @@ export default function RequestDetail() {
             background: "#fff",
           }}
         >
+
+          <div className="mb-6">
+            <MapViewer
+              pickupLocation={request.pickupLat ? { lat: request.pickupLat, lng: request.pickupLng } : null}
+              dropLocation={request.dropLat ? { lat: request.dropLat, lng: request.dropLng } : null}
+            />
+          </div>
+
           <div style={{ display: "grid", gap: 8 }}>
             <div>
               <b>Request ID:</b> {request._id}

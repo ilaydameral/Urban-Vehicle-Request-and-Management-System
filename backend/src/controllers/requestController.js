@@ -77,6 +77,10 @@ async function createRequest(req, res) {
       passenger: req.user.userId,
       pickupAddress,
       dropAddress,
+      pickupLat: req.body.pickupLat,
+      pickupLng: req.body.pickupLng,
+      dropLat: req.body.dropLat,
+      dropLng: req.body.dropLng,
     });
 
     return res.status(201).json({ request });

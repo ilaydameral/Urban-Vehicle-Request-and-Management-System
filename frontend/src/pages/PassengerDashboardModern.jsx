@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import RidePlannerMap from "../components/RidePlannerMap";
 
 export default function PassengerDashboardModern() {
     const { user } = useAuth();
@@ -10,12 +11,15 @@ export default function PassengerDashboardModern() {
         pickupAddress: "",
         dropAddress: "",
     });
+    const [pickupCoords, setPickupCoords] = useState(null);
+    const [dropCoords, setDropCoords] = useState(null);
 
     const [requests, setRequests] = useState([]);
     const [loadingList, setLoadingList] = useState(false);
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState("");
     const [successMsg, setSuccessMsg] = useState("");
+    const [routeInfo, setRouteInfo] = useState(null);
     const [showProfile, setShowProfile] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [profileForm, setProfileForm] = useState({
@@ -61,9 +65,12 @@ export default function PassengerDashboardModern() {
         }
     }
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
+    const handlePickupAddressChange = (value) => {
+        setForm((prev) => ({ ...prev, pickupAddress: value }));
+    };
+
+    const handleDropAddressChange = (value) => {
+        setForm((prev) => ({ ...prev, dropAddress: value }));
     };
 
     const handleCreateRequest = async (e) => {
@@ -76,10 +83,15 @@ export default function PassengerDashboardModern() {
             await api.post("/requests", {
                 pickupAddress: form.pickupAddress,
                 dropAddress: form.dropAddress,
+                pickupLat: pickupCoords?.lat,
+                pickupLng: pickupCoords?.lng,
+                dropLat: dropCoords?.lat,
+                dropLng: dropCoords?.lng,
             });
 
             setSuccessMsg("Request created successfully!");
             setForm({ pickupAddress: "", dropAddress: "" });
+            setRouteInfo(null);
             await fetchMyRequests();
 
             // Auto-clear success message
@@ -377,42 +389,15 @@ export default function PassengerDashboardModern() {
                                 </h2>
 
                                 <form onSubmit={handleCreateRequest} className="space-y-4">
-                                    {/* Pickup */}
-                                    <div className="relative">
-                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                                            <div className="w-3 h-3 rounded-full bg-brand-600"></div>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            name="pickupAddress"
-                                            value={form.pickupAddress}
-                                            onChange={handleChange}
-                                            placeholder="Pickup location"
-                                            required
-                                            className="input-uber pl-10"
-                                        />
-                                    </div>
-
-                                    {/* Connector Line */}
-                                    <div className="flex justify-center">
-                                        <div className="w-px h-6 bg-gray-300"></div>
-                                    </div>
-
-                                    {/* Dropoff */}
-                                    <div className="relative">
-                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                                            <div className="w-3 h-3 bg-midnight-900"></div>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            name="dropAddress"
-                                            value={form.dropAddress}
-                                            onChange={handleChange}
-                                            placeholder="Dropoff location"
-                                            required
-                                            className="input-uber pl-10"
-                                        />
-                                    </div>
+                                    <RidePlannerMap
+                                        pickupAddress={form.pickupAddress}
+                                        dropAddress={form.dropAddress}
+                                        onPickupAddressChange={handlePickupAddressChange}
+                                        onDropAddressChange={handleDropAddressChange}
+                                        onPickupCoordsChange={setPickupCoords}
+                                        onDropCoordsChange={setDropCoords}
+                                        onRouteChange={setRouteInfo}
+                                    />
 
                                     {/* Messages */}
                                     {error && (
@@ -424,6 +409,16 @@ export default function PassengerDashboardModern() {
                                     {successMsg && (
                                         <div className="bg-green-50 border-l-4 border-success px-4 py-3 rounded">
                                             <p className="text-sm text-success">{successMsg}</p>
+                                        </div>
+                                    )}
+
+                                    {routeInfo && (
+                                        <div className="flex items-center justify-between bg-slate-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700">
+                                            <div className="font-semibold text-midnight-900">Rota özeti</div>
+                                            <div className="flex gap-4">
+                                                <span>Mesafe: <strong>{routeInfo.distanceText || "-"}</strong></span>
+                                                <span>Tahmini süre: <strong>{routeInfo.durationText || "-"}</strong></span>
+                                            </div>
                                         </div>
                                     )}
 

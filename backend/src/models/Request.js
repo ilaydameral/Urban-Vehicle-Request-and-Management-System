@@ -26,6 +26,13 @@ const requestSchema = new mongoose.Schema(
       enum: ["PENDING", "ACCEPTED", "ON_GOING", "CANCELLED", "COMPLETED"],
       default: "PENDING",
     },
+
+    // Coordinates for Map Integration
+    pickupLat: { type: Number },
+    pickupLng: { type: Number },
+    dropLat: { type: Number },
+    dropLng: { type: Number },
+
   },
   { timestamps: true }
 );
