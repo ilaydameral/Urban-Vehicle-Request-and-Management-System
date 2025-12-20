@@ -1,4 +1,3 @@
-// src/routes/authRoutes.js
 const express = require("express");
 const authMiddleware = require("../middleware/authMiddleware");
 const {
@@ -8,6 +7,7 @@ const {
   forgotPassword,
   resetPassword,
   devResetPassword,
+  updateProfile,
 } = require("../controllers/authController");
 
 const router = express.Router();
@@ -26,6 +26,9 @@ router.post("/reset-password", resetPassword);
 
 // GET /api/auth/me
 router.get("/me", authMiddleware, getMe);
+
+// PATCH /api/auth/profile
+router.patch("/profile", authMiddleware, updateProfile);
 
 // POST /api/auth/dev/reset-password (DEV ONLY)
 router.post("/dev/reset-password", devResetPassword);

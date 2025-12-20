@@ -470,12 +470,18 @@ export default function DriverDashboard() {
             </div>
 
             <div>
-              <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>💰 Total Earnings</div>
-              <div style={{ fontSize: 20, fontWeight: "bold", color: "#ff6b00" }}>
-                ₺{dashboardStats.driver?.totalEarnings?.toFixed(2) || "0.00"}
+              <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>📅 Today's Earnings</div>
+              <div style={{ fontSize: 20, fontWeight: "bold", color: "#28a745" }}>
+                ₺{(trips.filter(t => {
+                  const completedAt = t.endTime || t.completedAt;
+                  if (!completedAt) return false;
+                  const today = new Date();
+                  const tripDate = new Date(completedAt);
+                  return tripDate.toDateString() === today.toDateString() && t.tripStatus === 'COMPLETED';
+                }).reduce((sum, t) => sum + (t.price || 0), 0)).toFixed(2)}
               </div>
               <div style={{ fontSize: 12, color: "#888" }}>
-                From completed trips
+                Today's completed trips
               </div>
             </div>
           </div>
@@ -811,6 +817,9 @@ export default function DriverDashboard() {
                   Completed At
                 </th>
                 <th style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>
+                  Price
+                </th>
+                <th style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>
                   Actions
                 </th>
               </tr>
@@ -834,6 +843,9 @@ export default function DriverDashboard() {
                   <td style={{ padding: "6px 4px" }}>{t.tripStatus}</td>
                   <td style={{ padding: "6px 4px" }}>{formatDate(t.startTime)}</td>
                   <td style={{ padding: "6px 4px" }}>{formatDate(t.endTime)}</td>
+                  <td style={{ padding: "6px 4px", fontWeight: "bold", color: "#28a745" }}>
+                    {t.price ? `₺${t.price.toFixed(2)}` : "-"}
+                  </td>
                   <td style={{ padding: "6px 4px" }}>
                     {t.tripStatus === "ACCEPTED" ? (
                       <button

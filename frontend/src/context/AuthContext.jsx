@@ -15,6 +15,8 @@ export function AuthProvider({ children }) {
       name: u.name || "",
       email: u.email || "",
       role: u.role || "",
+      profileImage: u.profileImage || "",
+      createdAt: u.createdAt || "",
     };
   };
 
