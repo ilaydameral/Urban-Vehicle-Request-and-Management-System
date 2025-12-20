@@ -122,6 +122,10 @@ async function getMyRequests(req, res) {
     const [total, requests] = await Promise.all([
       Request.countDocuments(filter),
       Request.find(filter)
+        .populate({
+          path: 'trip',
+          select: 'actualDropAddress actualDropLat actualDropLng tripStatus price'
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),

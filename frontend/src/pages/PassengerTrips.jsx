@@ -158,8 +158,15 @@ export default function PassengerTrips() {
             {trips.map((trip) => (
               <tr key={trip._id}>
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px 0" }}>
-                  {trip.request?.pickupAddress} →
-                  {trip.request?.dropAddress || trip.request?.dropoffAddress}
+                  <div>
+                    {trip.request?.pickupAddress} →{" "}
+                    {trip.actualDropAddress || trip.request?.dropAddress || trip.request?.dropoffAddress}
+                  </div>
+                  {trip.actualDropAddress && (
+                    <div style={{ fontSize: "11px", color: "#dc2626", marginTop: "4px" }}>
+                      (Erken iniş)
+                    </div>
+                  )}
                 </td>
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px 0" }}>
                   {trip.tripStatus || "-"}

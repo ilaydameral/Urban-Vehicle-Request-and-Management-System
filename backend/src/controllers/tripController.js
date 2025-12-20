@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const axios = require("axios");
 const Trip = require("../models/Trip");
 const Request = require("../models/Request");
 const Driver = require("../models/Driver");
@@ -347,6 +348,37 @@ async function completeTrip(req, res) {
     trip.tripStatus = "COMPLETED";
     trip.endTime = new Date();
 
+    // Handle actual dropoff location (if provided - early completion)
+    const { actualDropLat, actualDropLng, actualDropAddress } = req.body || {};
+    if (actualDropLat && actualDropLng) {
+      trip.actualDropLat = actualDropLat;
+      trip.actualDropLng = actualDropLng;
+
+      // Use address from frontend if provided
+      if (actualDropAddress) {
+        trip.actualDropAddress = actualDropAddress;
+        console.log(`📍 Actual dropoff (from frontend): ${trip.actualDropAddress}`);
+      } else {
+        // Fallback: Reverse geocode in backend
+        try {
+          const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+            params: {
+              latlng: `${actualDropLat},${actualDropLng}`,
+              key: process.env.GOOGLE_MAPS_API_KEY,
+            },
+          });
+
+          if (response.data.results && response.data.results.length > 0) {
+            trip.actualDropAddress = response.data.results[0].formatted_address;
+            console.log(`📍 Actual dropoff (from backend): ${trip.actualDropAddress}`);
+          }
+        } catch (geocodeErr) {
+          console.error('❌ Reverse geocoding failed:', geocodeErr.message);
+          trip.actualDropAddress = `${actualDropLat}, ${actualDropLng}`;
+        }
+      }
+    }
+
     // ✅ Ücret Hesaplama - KM Bazlı
     // Haversine formülü ile mesafe hesaplama
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -361,14 +393,17 @@ async function completeTrip(req, res) {
       return R * c; // Distance in km
     };
 
+    // Use actual dropoff for distance calculation if available
+    const dropLat = trip.actualDropLat || trip.request?.dropLat;
+    const dropLng = trip.actualDropLng || trip.request?.dropLng;
+
     let distanceKm = 0;
-    if (trip.request?.pickupLat && trip.request?.pickupLng &&
-      trip.request?.dropLat && trip.request?.dropLng) {
+    if (trip.request?.pickupLat && trip.request?.pickupLng && dropLat && dropLng) {
       distanceKm = calculateDistance(
         trip.request.pickupLat,
         trip.request.pickupLng,
-        trip.request.dropLat,
-        trip.request.dropLng
+        dropLat,
+        dropLng
       );
     }
 

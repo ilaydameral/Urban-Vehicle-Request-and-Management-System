@@ -31,7 +31,7 @@ const tripSchema = new mongoose.Schema(
       type: String,
       enum: ["ACCEPTED", "ON_GOING", "COMPLETED", "CANCELLED"],
       default: "ACCEPTED",
-    },  
+    },
     startTime: {
       type: Date,
     },
@@ -59,6 +59,11 @@ const tripSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+
+    // Actual dropoff location (if completed early)
+    actualDropLat: { type: Number },
+    actualDropLng: { type: Number },
+    actualDropAddress: { type: String },
   },
   {
     timestamps: true,

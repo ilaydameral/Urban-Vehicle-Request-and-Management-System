@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import RidePlannerMap from "../components/RidePlannerMap";
+import PassengerTripMap from "../components/PassengerTripMap";
 
 export default function PassengerDashboardModern() {
     const { user, updateUser } = useAuth();
@@ -15,6 +16,7 @@ export default function PassengerDashboardModern() {
     const [dropCoords, setDropCoords] = useState(null);
 
     const [requests, setRequests] = useState([]);
+    const [trips, setTrips] = useState([]);
     const [loadingList, setLoadingList] = useState(false);
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState("");
@@ -47,6 +49,7 @@ export default function PassengerDashboardModern() {
 
     useEffect(() => {
         fetchMyRequests();
+        fetchMyTrips();
     }, []);
 
     async function fetchMyRequests() {
@@ -62,6 +65,17 @@ export default function PassengerDashboardModern() {
             setError(err.response?.data?.message || "Failed to load your requests.");
         } finally {
             setLoadingList(false);
+        }
+    }
+
+    async function fetchMyTrips() {
+        try {
+            const res = await api.get("/trips/my-passenger");
+            const data = res.data;
+            const list = Array.isArray(data) ? data : data?.trips || [];
+            setTrips(list);
+        } catch (err) {
+            console.error("Failed to load trips:", err);
         }
     }
 
@@ -458,6 +472,24 @@ export default function PassengerDashboardModern() {
                             </div>
                         </div>
 
+                        {/* Active Trip Tracking */}
+                        {trips.filter(t => t.tripStatus === "ACCEPTED" || t.tripStatus === "ON_GOING").length > 0 && (
+                            <div className="mb-8">
+                                <div className="card" style={{ border: "2px solid #0066ff" }}>
+                                    <h3 className="text-2xl font-bold mb-4" style={{ color: "#0066ff" }}>
+                                        🚗 Live Trip Tracking
+                                    </h3>
+                                    {trips
+                                        .filter(t => t.tripStatus === "ACCEPTED" || t.tripStatus === "ON_GOING")
+                                        .map(trip => (
+                                            <div key={trip._id}>
+                                                <PassengerTripMap trip={trip} />
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Right: My Requests */}
                         <div>
                             <div className="card">
@@ -508,8 +540,13 @@ export default function PassengerDashboardModern() {
                                                             <span className="text-sm text-gray-600">Dropoff</span>
                                                         </div>
                                                         <p className="font-semibold text-midnight-900">
-                                                            {req.dropAddress}
+                                                            {req.trip?.actualDropAddress || req.dropAddress}
                                                         </p>
+                                                        {req.trip?.actualDropAddress && (
+                                                            <p className="text-xs text-red-600 mt-1">
+                                                                (Erken iniş)
+                                                            </p>
+                                                        )}
                                                     </div>
 
                                                     <div className="text-right">

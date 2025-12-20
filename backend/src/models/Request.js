@@ -43,7 +43,19 @@ const requestSchema = new mongoose.Schema(
     },
 
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
+
+// Virtual populate for trip
+requestSchema.virtual('trip', {
+  ref: 'Trip',
+  localField: '_id',
+  foreignField: 'request',
+  justOne: true
+});
 
 module.exports = mongoose.model("Request", requestSchema);

@@ -27,6 +27,7 @@ export default function DriverDashboard() {
   const [availableRequests, setAvailableRequests] = useState([]);
   const [trips, setTrips] = useState([]);
   const [dashboardStats, setDashboardStats] = useState(null); // Yeni: dashboard istatistikleri
+  const [currentTripPosition, setCurrentTripPosition] = useState(null); // Track current position for manual complete
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -349,7 +350,7 @@ export default function DriverDashboard() {
   }
 
   // ON_GOING trip → COMPLETED
-  async function handleCompleteTrip(tripId) {
+  async function handleCompleteTrip(tripId, currentPosition = null) {
     // ✅ Phase 2: prevent accidental complete
     if (!window.confirm("Complete this trip?")) return;
 
@@ -358,7 +359,36 @@ export default function DriverDashboard() {
     setActionLoading(true);
 
     try {
-      await api.patch(`/trips/${tripId}/complete`);
+      const payload = {};
+      if (currentPosition) {
+        payload.actualDropLat = currentPosition.lat;
+        payload.actualDropLng = currentPosition.lng;
+
+        // Reverse geocode in frontend
+        if (window.google && window.google.maps) {
+          try {
+            const geocoder = new window.google.maps.Geocoder();
+            const result = await new Promise((resolve, reject) => {
+              geocoder.geocode(
+                { location: { lat: currentPosition.lat, lng: currentPosition.lng } },
+                (results, status) => {
+                  if (status === 'OK' && results[0]) {
+                    resolve(results[0].formatted_address);
+                  } else {
+                    reject(new Error('Geocoding failed'));
+                  }
+                }
+              );
+            });
+            payload.actualDropAddress = result;
+            console.log('📍 Frontend geocoded address:', result);
+          } catch (geoErr) {
+            console.error('Frontend geocoding failed:', geoErr);
+            payload.actualDropAddress = `${currentPosition.lat.toFixed(5)}, ${currentPosition.lng.toFixed(5)}`;
+          }
+        }
+      }
+      await api.patch(`/trips/${tripId}/complete`, payload);
       setSuccessMsg("Trip completed.");
 
       // Auto-refresh with retry
@@ -851,12 +881,13 @@ export default function DriverDashboard() {
                 <DriverTripMap
                   trip={trip}
                   onTripComplete={handleCompleteTrip}
+                  onPositionUpdate={setCurrentTripPosition}
                 />
 
                 {/* Manual Complete Button (fallback) */}
                 <div style={{ marginTop: "16px", textAlign: "center" }}>
                   <button
-                    onClick={() => handleCompleteTrip(trip._id)}
+                    onClick={() => handleCompleteTrip(trip._id, currentTripPosition)}
                     disabled={actionLoading}
                     style={{
                       padding: "10px 24px",
@@ -946,11 +977,18 @@ export default function DriverDashboard() {
                     {t.request?.pickupAddress || t.pickupAddress || "-"}
                   </td>
                   <td style={{ padding: "6px 4px" }}>
-                    {t.request?.dropAddress ||
-                      t.request?.dropoffAddress ||
-                      t.dropAddress ||
-                      t.dropoffAddress ||
-                      "-"}
+                    <div>
+                      {t.actualDropAddress || t.request?.dropAddress ||
+                        t.request?.dropoffAddress ||
+                        t.dropAddress ||
+                        t.dropoffAddress ||
+                        "-"}
+                    </div>
+                    {t.actualDropAddress && (
+                      <div style={{ fontSize: "11px", color: "#dc2626", marginTop: "2px" }}>
+                        (Erken iniş)
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: "6px 4px" }}>{t.tripStatus}</td>
                   <td style={{ padding: "6px 4px" }}>{formatDate(t.startTime)}</td>
