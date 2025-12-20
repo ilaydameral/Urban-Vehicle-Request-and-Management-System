@@ -126,19 +126,19 @@ export default function App() {
             {user.role === "ADMIN" && (
               <>
                 <Link to="/admin/users" style={{ marginRight: 12 }}>
-                  Admin – Users
+                  Users
                 </Link>
                 <Link to="/admin/requests" style={{ marginRight: 12 }}>
-                  Admin – Requests
+                  Requests
                 </Link>
                 <Link to="/admin/trips" style={{ marginRight: 12 }}>
-                  Admin – Trips
+                  Trips
                 </Link>
                 <Link to="/admin/stats" style={{ marginRight: 12 }}>
-                  Admin – Stats
+                  Stats
                 </Link>
                 <Link to="/admin/consistency" style={{ marginRight: 12 }}>
-                  Admin – Consistency
+                  Consistency
                 </Link>
               </>
             )}
@@ -147,10 +147,10 @@ export default function App() {
             {user.role === "COORDINATOR" && (
               <>
                 <Link to="/coordinator" style={{ marginRight: 12 }}>
-                  Coordinator – Overview
+                  Dashboard
                 </Link>
                 <Link to="/coordinator/requests" style={{ marginRight: 12 }}>
-                  Coordinator – Assign Requests
+                  Requests
                 </Link>
               </>
             )}

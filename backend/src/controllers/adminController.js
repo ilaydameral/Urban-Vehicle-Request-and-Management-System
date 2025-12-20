@@ -86,7 +86,7 @@ async function updateUserRole(req, res) {
         role: user.role,
         isActive: user.isActive !== false,
       },
-    }); 
+    });
   } catch (err) {
     console.error("Admin update user role error:", err);
     return res
@@ -226,47 +226,50 @@ async function getStats(req, res) {
 
 async function checkConsistency(req, res) {
   try {
-    const drivers = await Driver.find({}).lean();
-    const users = await User.find({}).select("_id").lean();
-    const userIds = new Set(users.map((u) => String(u._id)));
+    // 1. Drivers: Populate user to check existence + get name (if exists)
+    const drivers = await Driver.find({}).populate("user", "name email").lean();
+    // If user is missing/null, it's an inconsistency
+    const driversWithMissingUser = drivers.filter((d) => !d.user);
 
-    const driversWithMissingUser = drivers.filter(
-      (d) => !d.user || !userIds.has(String(d.user))
-    );
+    // 2. Vehicles: Populate ownerDriver
+    const vehicles = await Vehicle.find({})
+      .populate({
+        path: "ownerDriver",
+        populate: { path: "user", select: "name email" },
+      })
+      .lean();
+    const vehiclesWithMissingDriver = vehicles.filter((v) => !v.ownerDriver);
 
-    const vehicles = await Vehicle.find({}).lean();
-    const driverIds = new Set(drivers.map((d) => String(d._id)));
+    // 3. Requests: Populate passenger
+    const requests = await Request.find({})
+      .populate("passenger", "name email")
+      .lean();
+    const requestsWithMissingPassenger = requests.filter((r) => !r.passenger);
 
-    const vehiclesWithMissingDriver = vehicles.filter(
-      (v) => !v.ownerDriver || !driverIds.has(String(v.ownerDriver))
-    );
-
-    const requests = await Request.find({}).lean();
-
-    const requestsWithMissingPassenger = requests.filter(
-      (r) => !r.passenger || !userIds.has(String(r.passenger))
-    );
-
-    const trips = await Trip.find({}).lean();
+    // 4. Trips
+    const trips = await Trip.find({})
+      .populate("passenger", "name email")
+      .populate({
+        path: "driver",
+        populate: { path: "user", select: "name email" },
+      })
+      .populate("request") // needed for status check
+      .populate("vehicle")
+      .lean();
 
     const tripsWithMissingRefs = [];
     const statusInconsistencies = [];
 
-    const requestStatusMap = new Map(
-      requests.map((r) => [String(r._id), r.status])
-    );
-
     trips.forEach((t) => {
       const problems = [];
 
-      if (!t.request || !requestStatusMap.has(String(t.request))) {
+      if (!t.request) {
         problems.push("missing_request");
       }
-      if (!t.driver || !driverIds.has(String(t.driver))) {
+      if (!t.driver) {
         problems.push("missing_driver");
       }
-
-      if (!t.passenger || !userIds.has(String(t.passenger))) {
+      if (!t.passenger) {
         problems.push("missing_passenger_user");
       }
       if (!t.vehicle) {
@@ -277,11 +280,15 @@ async function checkConsistency(req, res) {
         tripsWithMissingRefs.push({
           tripId: t._id,
           problems,
+          // meaningful info if available
+          passengerName: t.passenger?.name,
+          driverName: t.driver?.user?.name,
         });
       }
 
-      if (t.request && requestStatusMap.has(String(t.request))) {
-        const reqStatus = requestStatusMap.get(String(t.request));
+      // Check Status Consistency
+      if (t.request) {
+        const reqStatus = t.request.status;
         const tripStatus = t.tripStatus || t.status;
 
         if (
@@ -294,8 +301,10 @@ async function checkConsistency(req, res) {
           statusInconsistencies.push({
             tripId: t._id,
             tripStatus,
-            requestId: t.request,
+            requestId: t.request._id,
             requestStatus: reqStatus,
+            passengerName: t.passenger?.name || "Unknown",
+            driverName: t.driver?.user?.name || "Unknown",
           });
         }
       }

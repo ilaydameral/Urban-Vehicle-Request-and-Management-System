@@ -31,6 +31,9 @@ export default function RidePlannerMap({
 
   // Handle Route Calculation
   const calculateRoute = async () => {
+    if (!pickupCoords || !dropCoords) return;
+
+    if (!window.google) return;
     if (!pickupCoords || !dropCoords) {
       console.log("🔴 calculateRoute: Missing coords", { pickupCoords, dropCoords });
       return;
@@ -54,7 +57,7 @@ export default function RidePlannerMap({
         travelMode: google.maps.TravelMode.DRIVING,
         drivingOptions: {
           departureTime: new Date(), // Now
-          trafficModel: "bestguess", // Fixed: was "best_guess"
+          trafficModel: "best_guess",
         },
       });
 

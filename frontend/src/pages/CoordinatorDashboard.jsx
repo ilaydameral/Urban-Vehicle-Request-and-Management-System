@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 function formatDate(iso) {
   if (!iso) return "-";
@@ -10,70 +11,45 @@ function formatDate(iso) {
   return d.toLocaleString();
 }
 
-function Card({ title, value, to, subtitle }) {
-  return (
-    <div
-      style={{
-        border: "1px solid #e5e5e5",
-        borderRadius: 10,
-        padding: 14,
-        minWidth: 220,
-        background: "#fff",
-      }}
-    >
-      <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>
-        {title}
-      </div>
-      <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 6 }}>
-        {value}
-      </div>
-      {subtitle ? (
-        <div style={{ fontSize: 12, color: "#666", marginBottom: 10 }}>
-          {subtitle}
+function StatCard({ title, value, subtitle, to, gradient }) {
+  const content = (
+    <div className={`h-full p-6 rounded-xl text-white shadow-lg transition-transform hover:scale-[1.02] ${gradient}`}>
+      <div className="text-sm font-medium opacity-90 mb-1">{title}</div>
+      <div className="text-3xl font-bold mb-2">{value}</div>
+      {subtitle && <div className="text-xs opacity-75 mb-4">{subtitle}</div>}
+      {to && (
+        <div className="text-sm font-semibold flex items-center gap-1 hover:underline">
+          View Details <span>→</span>
         </div>
-      ) : null}
-      {to ? (
-        <Link to={to} style={{ fontSize: 13 }}>
-          View details →
-        </Link>
-      ) : null}
+      )}
     </div>
   );
+
+  if (to) return <Link to={to} className="block h-full">{content}</Link>;
+  return <div className="h-full">{content}</div>;
 }
 
 function Section({ title, items, emptyText, renderRow, footerLink }) {
   return (
-    <div
-      style={{
-        border: "1px solid #e5e5e5",
-        borderRadius: 10,
-        padding: 14,
-        background: "#fff",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <h4 style={{ margin: 0 }}>{title}</h4>
-        {footerLink ? (
-          <Link to={footerLink.to} style={{ fontSize: 13 }}>
+    <div className="floating-panel h-full">
+      <div className="flex justify-between items-center mb-4">
+        <h4 className="text-lg font-bold text-midnight-900">{title}</h4>
+        {footerLink && (
+          <Link to={footerLink.to} className="text-sm font-semibold text-brand-600 hover:text-brand-700">
             {footerLink.label} →
           </Link>
-        ) : null}
+        )}
       </div>
 
-      <div style={{ marginTop: 10 }}>
+      <div className="space-y-3">
         {items && items.length ? (
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {items.map((it) => (
-              <li
-                key={it?._id || JSON.stringify(it)}
-                style={{ marginBottom: 10 }}
-              >
-                {renderRow(it)}
-              </li>
-            ))}
-          </ul>
+          items.map((it) => (
+            <div key={it?._id || JSON.stringify(it)} className="p-3 bg-slate-50 rounded-lg border border-gray-100 hover:bg-slate-100 transition-colors">
+              {renderRow(it)}
+            </div>
+          ))
         ) : (
-          <div style={{ color: "#666" }}>{emptyText}</div>
+          <div className="text-gray-500 text-sm italic py-2">{emptyText}</div>
         )}
       </div>
     </div>
@@ -81,16 +57,17 @@ function Section({ title, items, emptyText, renderRow, footerLink }) {
 }
 
 export default function CoordinatorDashboard() {
+  const { user } = useAuth();
   const [data, setData] = useState({
     pendingDrivers: [],
     pendingVehicles: [],
     pendingRequests: [],
     ongoingTrips: [],
+    completedTrips: [],
+    cancelledTrips: []
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [approvingId, setApprovingId] = useState("");
-
 
   async function fetchOverview() {
     setLoading(true);
@@ -102,6 +79,8 @@ export default function CoordinatorDashboard() {
         pendingVehicles: res.data?.pendingVehicles || [],
         pendingRequests: res.data?.pendingRequests || [],
         ongoingTrips: res.data?.ongoingTrips || [],
+        completedTrips: res.data?.completedTrips || [],
+        cancelledTrips: res.data?.cancelledTrips || []
       });
     } catch (err) {
       console.error("Coordinator overview load error:", err);
@@ -115,28 +94,6 @@ export default function CoordinatorDashboard() {
     }
   }
 
-  async function approveDriver(driverId) {
-  const ok = window.confirm("Approve this driver?");
-  if (!ok) return;
-
-  setApprovingId(driverId);
-  setError("");
-
-  try {
-    await api.patch(`/coordinator/drivers/${driverId}/approve`);
-    await fetchOverview(); // onay sonrası listeyi yenile
-  } catch (err) {
-    console.error("Approve driver error:", err);
-    const msg =
-      err?.response?.data?.message ||
-      err?.message ||
-      "Failed to approve driver";
-    setError(msg);
-  } finally {
-    setApprovingId("");
-  }
-}
-
   useEffect(() => {
     fetchOverview();
   }, []);
@@ -147,150 +104,174 @@ export default function CoordinatorDashboard() {
       pendingVehicles: data.pendingVehicles.length,
       pendingRequests: data.pendingRequests.length,
       ongoingTrips: data.ongoingTrips.length,
+      completedTrips: data.completedTrips?.length || 0,
+      cancelledTrips: data.cancelledTrips?.length || 0
     }),
     [data]
   );
 
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-        <h2 style={{ margin: 0 }}>Coordinator Dashboard</h2>
-        <button onClick={fetchOverview} disabled={loading}>
-          Refresh
-        </button>
-      </div>
+    <div className="min-h-screen map-bg pb-12">
+      {/* Modern Header */}
+      <div className="bg-white shadow-sm sticky top-0 z-10 transition-shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🚖</span>
+              <div>
+                <h1 className="text-xl font-bold text-midnight-900">Coordinator Portal</h1>
+                <p className="text-xs text-gray-500">Overview & Management</p>
+              </div>
+            </div>
 
-      <p style={{ marginTop: 8, color: "#555" }}>
-        This screen summarizes operational workload (pending approvals, pending
-        requests, and ongoing trips). Use the shortcuts below to manage items.
-      </p>
-
-      {error ? (
-        <div
-          style={{
-            marginTop: 12,
-            padding: 12,
-            border: "1px solid #f3c7c7",
-            background: "#fff5f5",
-            borderRadius: 8,
-            color: "#8a1f1f",
-          }}
-        >
-          {error}
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                <div className="text-xs text-gray-500">Logged in as</div>
+                <div className="text-sm font-bold text-midnight-900">{user?.name || "Coordinator"}</div>
+              </div>
+              <button
+                onClick={fetchOverview}
+                disabled={loading}
+                className="btn-secondary text-sm py-2 px-4 shadow-none rounded-pill"
+              >
+                {loading ? "Refreshing..." : "Refresh Data"}
+              </button>
+            </div>
+          </div>
         </div>
-      ) : null}
-
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 14 }}>
-        <Card
-          title="Pending Driver Approvals"
-          value={counts.pendingDrivers}
-          to="/admin/pending-drivers"
-          subtitle="Drivers waiting for verification"
-        />
-        <Card
-          title="Pending Vehicle Approvals"
-          value={counts.pendingVehicles}
-          to="/admin/pending-vehicles"
-          subtitle="Vehicles waiting for verification"
-        />
-        <Card
-          title="Pending Requests"
-          value={counts.pendingRequests}
-          to="/coordinator/requests"
-          subtitle="Requests needing assignment / status follow-up"
-        />
-        <Card
-          title="Ongoing Trips"
-          value={counts.ongoingTrips}
-          to="/admin/trips"
-          subtitle="Active trips currently in progress"
-        />
-        <Card
-          title="Completed Trips"
-          value={data.completedTrips?.length || 0}
-          to="/admin/trips?status=COMPLETED"
-        />
-
-        <Card
-          title="Cancelled Trips"
-          value={data.cancelledTrips?.length || 0}
-          to="/admin/trips?status=CANCELLED"
-        />
       </div>
 
-      <div style={{ marginTop: 22 }}>
-        <h3 style={{ marginBottom: 8 }}>Recent items</h3>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
+        {error && (
+          <div className="mb-6 bg-red-50 border-l-4 border-error p-4 rounded-r shadow-sm">
+            <div className="flex">
+              <div className="ml-3">
+                <p className="text-sm text-error font-medium">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-midnight-900 mb-2">Operational Overview</h2>
+          <p className="text-gray-600">Real-time status of drivers, vehicles, and trip requests.</p>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-10">
+          <StatCard
+            title="Pending Drivers"
+            value={counts.pendingDrivers}
+            to="/admin/pending-drivers"
+            subtitle="Waiting for approval"
+            gradient="bg-gradient-to-br from-orange-400 to-red-500"
+          />
+          <StatCard
+            title="Pending Vehicles"
+            value={counts.pendingVehicles}
+            to="/admin/pending-vehicles"
+            subtitle="Waiting for inspection"
+            gradient="bg-gradient-to-br from-yellow-400 to-orange-500"
+          />
+          <StatCard
+            title="Pending Requests"
+            value={counts.pendingRequests}
+            to="/coordinator/requests"
+            subtitle="Needs assignment"
+            gradient="bg-gradient-to-br from-blue-500 to-indigo-600"
+          />
+          <StatCard
+            title="Ongoing Trips"
+            value={counts.ongoingTrips}
+            to="/admin/trips"
+            subtitle="Active on road"
+            gradient="bg-gradient-to-br from-emerald-400 to-teal-600"
+          />
+        </div>
+
+        {/* Detailed Sections Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Section
-            title="Pending Drivers (top 5)"
+            title="Recent Driver Applications"
             items={data.pendingDrivers.slice(0, 5)}
-            emptyText="No pending drivers."
+            emptyText="No pending driver applications."
+            footerLink={{ to: "/admin/pending-drivers", label: "View all" }}
             renderRow={(d) => (
-              <>
-                <b>{d?.user?.name || d?.user?.email || d?._id}</b>
-                <div style={{ fontSize: 12, color: "#666" }}>
-                  Submitted: {formatDate(d?.createdAt)}{" "}
-                  {d?.licenseNumber ? `• License: ${d.licenseNumber}` : ""}
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="font-bold text-midnight-900">{d?.user?.name || d?.user?.email || "Unknown User"}</div>
+                  <div className="text-xs text-gray-500">Applied: {formatDate(d?.createdAt)}</div>
                 </div>
-              </>
+                {d?.licenseNumber && (
+                  <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                    Lic: {d.licenseNumber}
+                  </span>
+                )}
+              </div>
             )}
-            footerLink={{ to: "/admin/pending-drivers", label: "Open drivers" }}
           />
 
           <Section
-            title="Pending Vehicles (top 5)"
+            title="Recent Vehicle Submissions"
             items={data.pendingVehicles.slice(0, 5)}
-            emptyText="No pending vehicles."
+            emptyText="No pending vehicle submissions."
+            footerLink={{ to: "/admin/pending-vehicles", label: "View all" }}
             renderRow={(v) => (
-              <>
-                <b>{v?.plateNumber || v?._id}</b>
-                <div style={{ fontSize: 12, color: "#666" }}>
-                  Owner: {v?.driver?.user?.name || v?.driver?.user?.email || "-"}
-                  {" • "}
-                  Submitted: {formatDate(v?.createdAt)}
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="font-bold text-midnight-900">{v?.plateNumber || "No Plate"}</div>
+                  <div className="text-xs text-gray-500">
+                    Owner: {v?.driver?.user?.name || "Unknown"}
+                  </div>
                 </div>
-              </>
+                <div className="text-xs text-gray-500">{formatDate(v?.createdAt)}</div>
+              </div>
             )}
-            footerLink={{ to: "/admin/pending-vehicles", label: "Open vehicles" }}
           />
 
           <Section
-            title="Pending Requests (top 5)"
+            title="Latest Ride Requests"
             items={data.pendingRequests.slice(0, 5)}
-            emptyText="No pending requests."
+            emptyText="No pending requests at the moment."
+            footerLink={{ to: "/admin/requests", label: "View all" }}
             renderRow={(r) => (
-              <>
-                <b>{r?.title || r?._id}</b>
-                <div style={{ fontSize: 12, color: "#666" }}>
-                  Passenger: {r?.passenger?.name || r?.passenger?.email || "-"}
-                  {" • "}
-                  Created: {formatDate(r?.createdAt)}
-                  {" • "}
-                  Status: {r?.status || "-"}
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between">
+                  <span className="font-bold text-brand-600">
+                    {r?.passenger?.name || "Guest Passenger"}
+                  </span>
+                  <span className="text-xs text-gray-500">{formatDate(r?.createdAt)}</span>
                 </div>
-              </>
+                <div className="text-xs text-gray-700 truncate w-full">
+                  <span className="font-semibold">From:</span> {r?.pickupAddress}
+                </div>
+                <div className="text-xs text-gray-700 truncate w-full">
+                  <span className="font-semibold">To:</span> {r?.dropAddress || r?.dropoffAddress}
+                </div>
+              </div>
             )}
-            footerLink={{ to: "/admin/requests", label: "Open requests" }}
           />
 
           <Section
-            title="Ongoing Trips (top 5)"
+            title="Active Trips"
             items={data.ongoingTrips.slice(0, 5)}
-            emptyText="No ongoing trips."
+            emptyText="No trips currently in progress."
+            footerLink={{ to: "/admin/trips", label: "View all" }}
             renderRow={(t) => (
-              <>
-                <b>{t?._id}</b>
-                <div style={{ fontSize: 12, color: "#666" }}>
-                  Driver: {t?.driver?.user?.name || t?.driver?.user?.email || "-"}
-                  {" • "}
-                  Passenger: {t?.passenger?.name || t?.passenger?.email || "-"}
-                  {" • "}
-                  Started: {formatDate(t?.createdAt)}
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between">
+                  <span className="font-bold text-emerald-600">Trip #{t?._id?.slice(-6)}</span>
+                  <span className="text-xs text-gray-500">{formatDate(t?.createdAt)}</span>
                 </div>
-              </>
+                <div className="text-xs text-gray-600">
+                  Driver: <span className="text-midnight-900 font-medium">{t?.driver?.user?.name || "Unknown"}</span>
+                </div>
+                <div className="text-xs text-gray-600">
+                  Passenger: <span className="text-midnight-900 font-medium">{t?.passenger?.name || "Unknown"}</span>
+                </div>
+              </div>
             )}
-            footerLink={{ to: "/admin/trips", label: "Open trips" }}
           />
         </div>
       </div>

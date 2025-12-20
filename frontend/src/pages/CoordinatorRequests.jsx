@@ -1,3 +1,4 @@
+// src/pages/CoordinatorRequests.jsx
 import { useEffect, useMemo, useState } from "react";
 import api from "../api/client";
 
@@ -11,41 +12,23 @@ function formatDate(iso) {
 function Modal({ open, title, children, onClose }) {
   if (!open) return null;
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.35)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        zIndex: 50,
-      }}
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        style={{
-          width: "min(720px, 100%)",
-          background: "#fff",
-          borderRadius: 12,
-          padding: 16,
-          border: "1px solid #e5e5e5",
-        }}
+        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            gap: 12,
-          }}
-        >
-          <h3 style={{ margin: 0 }}>{title}</h3>
-          <button onClick={onClose}>Close</button>
+        <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-slate-50">
+          <h3 className="text-xl font-bold text-midnight-900 m-0">{title}</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors text-2xl leading-none"
+          >
+            &times;
+          </button>
         </div>
-        <div style={{ marginTop: 12 }}>{children}</div>
+        <div className="p-6">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -82,8 +65,8 @@ export default function CoordinatorRequests() {
       console.error("Pending requests error:", err);
       setError(
         err?.response?.data?.message ||
-          err?.message ||
-          "Failed to load pending requests"
+        err?.message ||
+        "Failed to load pending requests"
       );
     } finally {
       setLoading(false);
@@ -101,8 +84,8 @@ export default function CoordinatorRequests() {
       console.error("Resources error:", err);
       setResourceError(
         err?.response?.data?.message ||
-          err?.message ||
-          "Failed to load drivers/vehicles"
+        err?.message ||
+        "Failed to load drivers/vehicles"
       );
     } finally {
       setResourceLoading(false);
@@ -124,14 +107,12 @@ export default function CoordinatorRequests() {
     setDriverId("");
     setVehicleId("");
     setAssignOpen(true);
-    // her açılışta güncel kaynak çek (en güvenlisi)
     fetchResources();
   }
 
   async function submitAssign() {
     if (!selectedRequest?._id) return;
 
-    // ✅ Confirm (Phase 2 UX / güvenlik)
     if (!driverId || !vehicleId) {
       setAssignMsg("Please select both a driver and a vehicle.");
       return;
@@ -160,6 +141,8 @@ export default function CoordinatorRequests() {
       // listeleri yenile
       await fetchPendingRequests();
       await fetchResources();
+      // Wait a moment then close
+      setTimeout(() => setAssignOpen(false), 1500);
     } catch (err) {
       console.error("Assign error:", err);
       setAssignMsg(
@@ -171,126 +154,132 @@ export default function CoordinatorRequests() {
   }
 
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-        <div>
-          <h2 style={{ margin: 0 }}>Coordinator – Pending Requests</h2>
-          <p style={{ marginTop: 8, color: "#555" }}>
-            Assign an approved driver and an available verified vehicle to create a trip.
-          </p>
+    <div className="min-h-screen map-bg pb-12">
+      {/* Header */}
+      <div className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🚖</span>
+              <div>
+                <h1 className="text-xl font-bold text-midnight-900">Pending Requests</h1>
+                <p className="text-xs text-gray-500">Assign drivers & vehicles</p>
+              </div>
+            </div>
+            <button
+              onClick={fetchPendingRequests}
+              disabled={loading}
+              className="btn-secondary text-sm py-2 px-4 shadow-none rounded-pill"
+            >
+              {loading ? "Refreshing..." : "Refresh List"}
+            </button>
+          </div>
         </div>
-        <button onClick={fetchPendingRequests} disabled={loading}>
-          Refresh
-        </button>
       </div>
 
-      {error ? (
-        <div
-          style={{
-            marginTop: 12,
-            padding: 12,
-            border: "1px solid #f3c7c7",
-            background: "#fff5f5",
-            borderRadius: 8,
-            color: "#8a1f1f",
-          }}
-        >
-          {error}
-        </div>
-      ) : null}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
 
-      {loading ? (
-        <p>Loading…</p>
-      ) : requests.length === 0 ? (
-        <p>No pending requests.</p>
-      ) : (
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: 13,
-            marginTop: 12,
-          }}
-        >
-          <thead>
-            <tr>
-              <th style={{ borderBottom: "1px solid #ddd", textAlign: "left" }}>
-                Passenger
-              </th>
-              <th style={{ borderBottom: "1px solid #ddd", textAlign: "left" }}>
-                Pickup
-              </th>
-              <th style={{ borderBottom: "1px solid #ddd", textAlign: "left" }}>
-                Dropoff
-              </th>
-              <th style={{ borderBottom: "1px solid #ddd", textAlign: "left" }}>
-                Created At
-              </th>
-              <th style={{ borderBottom: "1px solid #ddd", textAlign: "left" }}>
-                Action
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((r) => (
-              <tr key={r._id}>
-                <td style={{ borderBottom: "1px solid #f0f0f0", padding: "8px 6px" }}>
-                  {r.passenger?.name || r.passenger?.email || r.passenger || "-"}
-                </td>
-                <td style={{ borderBottom: "1px solid #f0f0f0", padding: "8px 6px" }}>
-                  {r.pickupAddress}
-                </td>
-                <td style={{ borderBottom: "1px solid #f0f0f0", padding: "8px 6px" }}>
-                  {r.dropAddress || r.dropoffAddress}
-                </td>
-                <td style={{ borderBottom: "1px solid #f0f0f0", padding: "8px 6px" }}>
-                  {formatDate(r.createdAt)}
-                </td>
-                <td style={{ borderBottom: "1px solid #f0f0f0", padding: "8px 6px" }}>
-                  <button onClick={() => openAssign(r)}>Assign</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+        {error && (
+          <div className="mb-6 bg-red-50 border-l-4 border-error p-4 rounded-r shadow-sm">
+            <p className="text-sm text-error font-medium">{error}</p>
+          </div>
+        )}
+
+        <div className="floating-panel">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-midnight-900">Waitlist</h2>
+            <div className="text-sm text-gray-500">
+              {requests.length} request{requests.length !== 1 ? 's' : ''} pending
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => <div key={i} className="shimmer h-16 w-full rounded-lg"></div>)}
+            </div>
+          ) : requests.length === 0 ? (
+            <div className="text-center py-12 bg-slate-50 rounded-lg border-2 border-dashed border-gray-200">
+              <div className="text-4xl mb-3">📭</div>
+              <p className="text-gray-500 font-medium">No pending requests found.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-gray-100">
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Passenger</th>
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Pickup</th>
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Dropoff</th>
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Requested At</th>
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {requests.map((r) => (
+                    <tr key={r._id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="font-medium text-midnight-900">{r.passenger?.name || "Guest"}</div>
+                        <div className="text-xs text-brand-600">{r.passenger?.email || "-"}</div>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600 text-sm max-w-xs truncate" title={r.pickupAddress}>
+                        {r.pickupAddress}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600 text-sm max-w-xs truncate" title={r.dropAddress || r.dropoffAddress}>
+                        {r.dropAddress || r.dropoffAddress}
+                      </td>
+                      <td className="py-3 px-4 text-gray-500 text-sm whitespace-nowrap">
+                        {formatDate(r.createdAt)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => openAssign(r)}
+                          className="btn-primary py-1 px-4 text-sm shadow-sm hover:shadow-md"
+                        >
+                          Assign
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
 
       <Modal
         open={assignOpen}
-        title={selectedRequest ? `Assign Request: ${selectedRequest._id}` : "Assign Request"}
+        title="Assign Request"
         onClose={() => setAssignOpen(false)}
       >
         {selectedRequest ? (
-          <div style={{ fontSize: 13, color: "#333" }}>
-            <div style={{ marginBottom: 10 }}>
-              <b>Pickup:</b> {selectedRequest.pickupAddress}
-              <br />
-              <b>Dropoff:</b> {selectedRequest.dropAddress || selectedRequest.dropoffAddress}
-              <br />
-              <b>Passenger:</b>{" "}
-              {selectedRequest.passenger?.name ||
-                selectedRequest.passenger?.email ||
-                "-"}
+          <div className="text-sm">
+            <div className="bg-slate-50 p-4 rounded-lg mb-6 border border-gray-100">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-gray-500 uppercase">Pickup Location</div>
+                  <div className="font-semibold text-midnight-900">{selectedRequest.pickupAddress}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 uppercase">Dropoff Location</div>
+                  <div className="font-semibold text-midnight-900">{selectedRequest.dropAddress || selectedRequest.dropoffAddress}</div>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="text-xs text-gray-500 uppercase">Passenger</div>
+                <div className="font-semibold text-midnight-900">{selectedRequest.passenger?.name || "Guest"} <span className="text-gray-400 font-normal">({selectedRequest.passenger?.email || "-"})</span></div>
+              </div>
             </div>
 
-            {resourceError ? (
-              <div
-                style={{
-                  marginBottom: 10,
-                  padding: 10,
-                  border: "1px solid #f3c7c7",
-                  background: "#fff5f5",
-                  borderRadius: 8,
-                  color: "#8a1f1f",
-                }}
-              >
+            {resourceError && (
+              <div className="mb-4 bg-red-50 text-error p-3 rounded-lg text-sm">
                 {resourceError}
               </div>
-            ) : null}
+            )}
 
-            <div style={{ display: "grid", gap: 10 }}>
-              <label>
-                <div style={{ marginBottom: 6 }}>Driver</div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver</label>
                 <select
                   value={driverId}
                   onChange={(e) => {
@@ -299,19 +288,19 @@ export default function CoordinatorRequests() {
                     setAssignMsg("");
                   }}
                   disabled={resourceLoading}
-                  style={{ width: "100%", padding: 8 }}
+                  className="input-uber appearance-none"
                 >
-                  <option value="">Select driver…</option>
+                  <option value="">Choose a driver...</option>
                   {drivers.map((d) => (
                     <option key={d._id} value={d._id}>
-                      {d.user?.name || d.user?.email || d._id}
+                      {d.user?.name || d.user?.email || "Unknown"} (Lic: {d.licenseNumber || 'N/A'})
                     </option>
                   ))}
                 </select>
-              </label>
+              </div>
 
-              <label>
-                <div style={{ marginBottom: 6 }}>Vehicle</div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Select Vehicle</label>
                 <select
                   value={vehicleId}
                   onChange={(e) => {
@@ -319,37 +308,52 @@ export default function CoordinatorRequests() {
                     setAssignMsg("");
                   }}
                   disabled={!driverId || resourceLoading}
-                  style={{ width: "100%", padding: 8 }}
+                  className="input-uber appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   <option value="">
-                    {driverId ? "Select vehicle…" : "Select driver first…"}
+                    {driverId ? "Choose a vehicle..." : "Select driver first..."}
                   </option>
                   {vehiclesForSelectedDriver.map((v) => (
                     <option key={v._id} value={v._id}>
-                      {v.plateNumber || v._id}
+                      {v.plateNumber} ({v.model || 'Unknown Model'})
                     </option>
                   ))}
                 </select>
-              </label>
+              </div>
 
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              {assignMsg && (
+                <div className={`text-sm font-medium p-2 rounded ${assignMsg.includes("success") ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50"}`}>
+                  {assignMsg}
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-6 pt-2">
                 <button
                   onClick={submitAssign}
                   disabled={!driverId || !vehicleId || assigning}
+                  className="btn-primary w-full flex justify-center items-center"
                 >
-                  {assigning ? "Assigning…" : "Confirm Assignment"}
+                  {assigning ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></span>
+                      Assigning...
+                    </>
+                  ) : "Confirm Assignment"}
                 </button>
-                <button onClick={fetchResources} disabled={resourceLoading}>
-                  Reload resources
+                <button
+                  onClick={fetchResources}
+                  disabled={resourceLoading}
+                  className="btn-outline px-4"
+                  title="Reload Resources"
+                >
+                  ↻
                 </button>
               </div>
-
-              {assignMsg ? (
-                <div style={{ marginTop: 6, color: "#333" }}>{assignMsg}</div>
-              ) : null}
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="text-gray-500">No request selected</div>
+        )}
       </Modal>
     </div>
   );
