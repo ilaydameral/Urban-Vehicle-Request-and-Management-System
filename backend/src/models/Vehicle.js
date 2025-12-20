@@ -57,6 +57,10 @@ const vehicleSchema = new mongoose.Schema(
       default: true,
     },
 
+    // Vehicle Location
+    locationLat: { type: Number },
+    locationLng: { type: Number },
+
     // Aracın operasyonel müsaitlik durumu
     availabilityStatus: {
       type: String,

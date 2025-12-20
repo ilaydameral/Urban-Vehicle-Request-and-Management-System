@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import MapViewer from "../components/MapViewer";
 
 function formatDate(iso) {
   if (!iso) return "-";
@@ -134,6 +135,14 @@ export default function TripDetail() {
             background: "#fff",
           }}
         >
+          <div className="mb-6">
+            <MapViewer
+              pickupLocation={trip.request?.pickupLat ? { lat: trip.request.pickupLat, lng: trip.request.pickupLng } : null}
+              dropLocation={trip.request?.dropLat ? { lat: trip.request.dropLat, lng: trip.request.dropLng } : null}
+              driverLocation={trip.vehicle?.locationLat ? { lat: trip.vehicle.locationLat, lng: trip.vehicle.locationLng } : null}
+            />
+          </div>
+
           <div style={{ display: "grid", gap: 8 }}>
             <div>
               <b>Trip ID:</b> {trip._id}
