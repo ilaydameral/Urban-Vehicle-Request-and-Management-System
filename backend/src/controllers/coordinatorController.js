@@ -20,6 +20,17 @@ async function getOverview(req, res) {
       .populate("passenger")
       .sort({ createdAt: 1 });
 
+    const completedRequests = await Request.find({ status: "COMPLETED" })
+      .populate("passenger")
+      .sort({ updatedAt: -1 })
+      .limit(5);
+
+    const cancelledRequests = await Request.find({ status: "CANCELLED" })
+      .populate("passenger")
+      .sort({ updatedAt: -1 })
+      .limit(5);
+      
+
     const ongoingTrips = await Trip.find({ tripStatus: "ON_GOING" })
       .populate("driver")
       .populate("passenger")
@@ -27,11 +38,25 @@ async function getOverview(req, res) {
       .populate("request")
       .sort({ createdAt: 1 });
 
+    const completedTrips = await Trip.find({ tripStatus: "COMPLETED" })
+      .populate("driver passenger vehicle")
+      .sort({ updatedAt: -1 })
+      .limit(5);
+
+    const cancelledTrips = await Trip.find({ tripStatus: "CANCELLED" })
+      .populate("driver passenger vehicle")
+      .sort({ updatedAt: -1 })
+      .limit(5);
+  
     return res.json({
       pendingDrivers,
       pendingVehicles,
       pendingRequests,
+      completedRequests,
+      cancelledRequests,
       ongoingTrips,
+      completedTrips,
+      cancelledTrips,
     });
   } catch (err) {
     console.error("Coordinator overview error:", err);
@@ -180,8 +205,35 @@ async function assignRequest(req, res) {
   }
 }
 
+// coordinatorController.js (EN ALT TARAF)
+
+async function approveDriver(req, res) {
+  try {
+    const { driverId } = req.params;
+
+    const driver = await Driver.findById(driverId).populate("user");
+    if (!driver) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
+
+    if (driver.isApproved) {
+      return res.json({ message: "Driver is already approved", driver });
+    }
+
+    driver.isApproved = true;
+    await driver.save();
+
+    return res.json({ message: "Driver approved successfully", driver });
+  } catch (err) {
+    console.error("Approve driver error:", err);
+    return res.status(500).json({ message: "Server error while approving driver" });
+  }
+}
+
+
 module.exports = {
   getOverview,
   getResources,
   assignRequest,
+  approveDriver,
 };
