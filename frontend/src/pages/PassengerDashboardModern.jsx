@@ -5,6 +5,26 @@ import { useAuth } from "../context/AuthContext";
 import RidePlannerMap from "../components/RidePlannerMap";
 import PassengerTripMap from "../components/PassengerTripMap";
 
+// Helper: Check if request's trip was completed early
+function isEarlyCompletion(req) {
+    if (!req.trip?.actualDropLat || !req.trip?.actualDropLng) return false;
+    if (!req.dropLat || !req.dropLng) return false;
+
+    const R = 6371e3;
+    const φ1 = req.dropLat * Math.PI / 180;
+    const φ2 = req.trip.actualDropLat * Math.PI / 180;
+    const Δφ = (req.trip.actualDropLat - req.dropLat) * Math.PI / 180;
+    const Δλ = (req.trip.actualDropLng - req.dropLng) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+
+    return distance > 500;
+}
+
 export default function PassengerDashboardModern() {
     const { user, updateUser } = useAuth();
 
@@ -30,6 +50,13 @@ export default function PassengerDashboardModern() {
         profileImageUrl: user?.profileImage || "",
     });
     const [updating, setUpdating] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+    });
+    const [changingPassword, setChangingPassword] = useState(false);
 
     useEffect(() => {
         if (user?.name || user?.email) {
@@ -201,6 +228,47 @@ export default function PassengerDashboardModern() {
             profileImageUrl: user?.profileImage || "",
         });
         setError("");
+    }
+
+    async function handleChangePassword(e) {
+        e.preventDefault();
+        setError("");
+        setSuccessMsg("");
+
+        // Validation
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            setError("New passwords do not match");
+            return;
+        }
+
+        if (passwordForm.newPassword.length < 6) {
+            setError("Password must be at least 6 characters long");
+            return;
+        }
+
+        setChangingPassword(true);
+
+        try {
+            await api.post("/auth/change-password", {
+                currentPassword: passwordForm.currentPassword,
+                newPassword: passwordForm.newPassword,
+            });
+
+            setSuccessMsg("Password changed successfully!");
+            setShowPasswordModal(false);
+            setPasswordForm({
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+            });
+
+            // Auto-clear success message
+            setTimeout(() => setSuccessMsg(""), 5000);
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to change password");
+        } finally {
+            setChangingPassword(false);
+        }
     }
 
     return (
@@ -385,7 +453,10 @@ export default function PassengerDashboardModern() {
 
                             {/* Actions */}
                             <div className="mt-8 pt-6 border-t border-gray-200">
-                                <button className="btn-secondary w-full mb-3">
+                                <button
+                                    onClick={() => setShowPasswordModal(true)}
+                                    className="btn-secondary w-full mb-3"
+                                >
                                     Change Password
                                 </button>
                                 <button className="text-error font-semibold text-sm hover:underline w-full">
@@ -542,7 +613,7 @@ export default function PassengerDashboardModern() {
                                                         <p className="font-semibold text-midnight-900">
                                                             {req.trip?.actualDropAddress || req.dropAddress}
                                                         </p>
-                                                        {req.trip?.actualDropAddress && (
+                                                        {isEarlyCompletion(req) && (
                                                             <p className="text-xs text-red-600 mt-1">
                                                                 (Erken iniş)
                                                             </p>
@@ -579,6 +650,121 @@ export default function PassengerDashboardModern() {
                     </div>
                 )}
             </div>
+
+            {/* Password Change Modal */}
+            {showPasswordModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-card shadow-float p-6 max-w-md w-full">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-2xl font-bold text-midnight-900">Change Password</h3>
+                            <button
+                                onClick={() => {
+                                    setShowPasswordModal(false);
+                                    setPasswordForm({
+                                        currentPassword: "",
+                                        newPassword: "",
+                                        confirmPassword: "",
+                                    });
+                                    setError("");
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleChangePassword} className="space-y-4">
+                            {/* Current Password */}
+                            <div>
+                                <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Current Password
+                                </label>
+                                <input
+                                    id="currentPassword"
+                                    type="password"
+                                    value={passwordForm.currentPassword}
+                                    onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                                    placeholder="Enter current password"
+                                    required
+                                    className="input-uber"
+                                    disabled={changingPassword}
+                                />
+                            </div>
+
+                            {/* New Password */}
+                            <div>
+                                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                                    New Password
+                                </label>
+                                <input
+                                    id="newPassword"
+                                    type="password"
+                                    value={passwordForm.newPassword}
+                                    onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                                    placeholder="Enter new password"
+                                    required
+                                    className="input-uber"
+                                    disabled={changingPassword}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div>
+                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Confirm New Password
+                                </label>
+                                <input
+                                    id="confirmPassword"
+                                    type="password"
+                                    value={passwordForm.confirmPassword}
+                                    onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                                    placeholder="Confirm new password"
+                                    required
+                                    className="input-uber"
+                                    disabled={changingPassword}
+                                />
+                            </div>
+
+                            {/* Error Message */}
+                            {error && (
+                                <div className="bg-red-50 border-l-4 border-error px-4 py-3 rounded">
+                                    <p className="text-sm text-error">{error}</p>
+                                </div>
+                            )}
+
+                            {/* Buttons */}
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowPasswordModal(false);
+                                        setPasswordForm({
+                                            currentPassword: "",
+                                            newPassword: "",
+                                            confirmPassword: "",
+                                        });
+                                        setError("");
+                                    }}
+                                    className="btn-outline flex-1"
+                                    disabled={changingPassword}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={changingPassword}
+                                    className="btn-primary flex-1"
+                                >
+                                    {changingPassword ? "Changing..." : "Change Password"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

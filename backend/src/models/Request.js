@@ -33,7 +33,7 @@ const requestSchema = new mongoose.Schema(
     dropLat: { type: Number },
     dropLng: { type: Number },
 
-    // Rejection tracking
+    // Rejection tracking (old - kept for backward compatibility)
     rejectedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Driver",
@@ -41,6 +41,12 @@ const requestSchema = new mongoose.Schema(
     rejectedAt: {
       type: Date,
     },
+
+    // New: Track all drivers who rejected this request
+    rejectedDrivers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Driver",
+    }],
 
   },
   {

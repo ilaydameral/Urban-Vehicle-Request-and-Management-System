@@ -4,6 +4,26 @@ import { Link } from "react-router-dom";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 
+// Helper: Check if trip was completed early (distance > 500m from planned dropoff)
+function isEarlyCompletion(trip) {
+  if (!trip.actualDropLat || !trip.actualDropLng) return false;
+  if (!trip.request?.dropLat || !trip.request?.dropLng) return false;
+
+  const R = 6371e3;
+  const φ1 = trip.request.dropLat * Math.PI / 180;
+  const φ2 = trip.actualDropLat * Math.PI / 180;
+  const Δφ = (trip.actualDropLat - trip.request.dropLat) * Math.PI / 180;
+  const Δλ = (trip.actualDropLng - trip.request.dropLng) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+
+  return distance > 500;
+}
+
 export default function PassengerTrips() {
   const { user } = useAuth();
   const [trips, setTrips] = useState([]);
@@ -162,7 +182,7 @@ export default function PassengerTrips() {
                     {trip.request?.pickupAddress} →{" "}
                     {trip.actualDropAddress || trip.request?.dropAddress || trip.request?.dropoffAddress}
                   </div>
-                  {trip.actualDropAddress && (
+                  {isEarlyCompletion(trip) && (
                     <div style={{ fontSize: "11px", color: "#dc2626", marginTop: "4px" }}>
                       (Erken iniş)
                     </div>

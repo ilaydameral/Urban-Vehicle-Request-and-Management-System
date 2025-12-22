@@ -161,8 +161,11 @@ async function getAvailableRequests(req, res) {
       return res.status(403).json({ message: "Driver is not approved yet" });
     }
 
-    // Get all PENDING requests
-    const requests = await Request.find({ status: "PENDING" })
+    // Get all PENDING requests that this driver has NOT rejected
+    const requests = await Request.find({
+      status: "PENDING",
+      rejectedDrivers: { $ne: driver._id } // Exclude requests this driver rejected
+    })
       .sort({ createdAt: -1 })
       .populate("passenger");
 
@@ -425,14 +428,27 @@ async function rejectRequest(req, res) {
       });
     }
 
-    // Mark request as REJECTED
-    request.status = "REJECTED";
-    request.rejectedBy = driver._id; // Optional: track which driver rejected
+    // Check if this driver already rejected this request
+    if (request.rejectedDrivers && request.rejectedDrivers.some(d => d.toString() === driver._id.toString())) {
+      return res.status(400).json({
+        message: "You have already rejected this request",
+      });
+    }
+
+    // Add driver to rejectedDrivers array (keep request PENDING for other drivers)
+    if (!request.rejectedDrivers) {
+      request.rejectedDrivers = [];
+    }
+    request.rejectedDrivers.push(driver._id);
+
+    // Keep backward compatibility with old fields
+    request.rejectedBy = driver._id;
     request.rejectedAt = new Date();
+
     await request.save();
 
     return res.json({
-      message: "Request rejected successfully",
+      message: "Request rejected successfully. Other drivers can still accept this request.",
       request,
     });
   } catch (err) {

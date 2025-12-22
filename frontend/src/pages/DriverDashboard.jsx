@@ -5,6 +5,27 @@ import { useAuth } from "../context/AuthContext";
 import DriverTripMap from "../components/DriverTripMap";
 
 
+// Helper: Check if trip was completed early (distance > 500m from planned dropoff)
+function isEarlyCompletion(trip) {
+  if (!trip.actualDropLat || !trip.actualDropLng) return false;
+  if (!trip.request?.dropLat || !trip.request?.dropLng) return false;
+
+  // Haversine formula
+  const R = 6371e3; // meters
+  const φ1 = trip.request.dropLat * Math.PI / 180;
+  const φ2 = trip.actualDropLat * Math.PI / 180;
+  const Δφ = (trip.actualDropLat - trip.request.dropLat) * Math.PI / 180;
+  const Δλ = (trip.actualDropLng - trip.request.dropLng) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+
+  return distance > 500; // More than 500 meters = early completion
+}
+
 export default function DriverDashboard() {
   const { user, logout } = useAuth();
 
@@ -984,7 +1005,7 @@ export default function DriverDashboard() {
                         t.dropoffAddress ||
                         "-"}
                     </div>
-                    {t.actualDropAddress && (
+                    {isEarlyCompletion(t) && (
                       <div style={{ fontSize: "11px", color: "#dc2626", marginTop: "2px" }}>
                         (Erken iniş)
                       </div>
