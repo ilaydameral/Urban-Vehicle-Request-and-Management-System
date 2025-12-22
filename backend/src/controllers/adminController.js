@@ -515,10 +515,115 @@ async function overrideTripStatus(req, res) {
       updatedStatus: status,
     });
   } catch (err) {
-    console.error("Admin override trip status error:", err);
     return res.status(500).json({
       message: "Server error while overriding trip status",
     });
+  }
+}
+
+// -- VIEW / COMPLEX QUERY --
+// Aggregates driver data with trip statistics to generate a performance report
+// This simulates a SQL View: "CREATE VIEW DriverPerformance AS ..."
+async function getDriverPerformanceReport(req, res) {
+  try {
+    const report = await Driver.aggregate([
+      // 1. Join with Users to get name/email
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "userInfo",
+        },
+      },
+      { $unwind: "$userInfo" }, // Convert array to object
+      // 2. Join with Trips to calculate average price and total distance (mocked)
+      {
+        $lookup: {
+          from: "trips",
+          localField: "_id",
+          foreignField: "driver",
+          as: "trips",
+        },
+      },
+      // 3. Project only necessary fields and calculate aggregates
+      {
+        $project: {
+          _id: 1,
+          name: "$userInfo.name",
+          email: "$userInfo.email",
+          licenseNumber: 1,
+          totalTrips: 1, // From schema
+          rating: 1,     // From schema (updated by Trigger)
+          // Calculate real-time stats from the joined 'trips' array
+          calculatedTotalEarnings: { $sum: "$trips.price" },
+          completedTripsCount: {
+            $size: {
+              $filter: {
+                input: "$trips",
+                as: "trip",
+                cond: { $eq: ["$$trip.tripStatus", "COMPLETED"] },
+              },
+            },
+          },
+        },
+      },
+      // 4. Sort by highest rating then most trips
+      {
+        $sort: { rating: -1, totalTrips: -1 },
+      },
+    ]);
+
+    return res.json({ report });
+  } catch (err) {
+    console.error("Driver performance report error:", err);
+  }
+}
+
+// -- ANALYTICS DASHBOARD --
+// Aggregates data for charts: Peak Hours & Popular Zones
+async function getDashboardAnalytics(req, res) {
+  try {
+    // 1. Peak Hours (Group Requests by hour of day)
+    const peakHoursRaw = await Request.aggregate([
+      {
+        $group: {
+          _id: { $hour: "$createdAt" },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1 } }, // Highest demand first
+    ]);
+
+    // Format output: { "9": 5, "18": 12, ... }
+    const peakHours = {};
+    peakHoursRaw.forEach((i) => {
+      peakHours[i._id] = i.count;
+    });
+
+    // 2. Zone Analytics (Normally using lat/lng clustering, simplified here by address)
+    // We will list top 5 most frequent pickup addresses (or just random clustering if addresses are unique)
+    // Since addresses might be unique, this is a "best effort" using simple strings.
+    const popularZonesRaw = await Request.aggregate([
+      {
+        $group: {
+          _id: "$pickupAddress", // Group by exact string (or use partial match in real app)
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+    ]);
+
+    const popularZones = popularZonesRaw.map(z => ({ zone: z._id, requests: z.count }));
+
+    return res.json({
+      peakHours,
+      popularZones
+    });
+  } catch (err) {
+    console.error("Dashboard analytics error:", err);
+    return res.status(500).json({ message: "Server error generating analytics" });
   }
 }
 
@@ -530,4 +635,6 @@ module.exports = {
   checkConsistency,
   overrideRequestStatus,
   overrideTripStatus,
+  getDriverPerformanceReport,
+  getDashboardAnalytics,
 };

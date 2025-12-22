@@ -10,11 +10,27 @@ const {
   checkConsistency,
   overrideRequestStatus,
   overrideTripStatus,
+  getDriverPerformanceReport,
+  getDashboardAnalytics,
 } = require("../controllers/adminController");
 
 const router = express.Router();
 
 router.get("/users", authMiddleware, requireRole("ADMIN"), listUsers);
+
+router.get(
+  "/reports/drivers",
+  authMiddleware,
+  requireRole("ADMIN", "COORDINATOR"),
+  getDriverPerformanceReport
+);
+
+router.get(
+  "/analytics/dashboard",
+  authMiddleware,
+  requireRole("ADMIN", "COORDINATOR"),
+  getDashboardAnalytics
+);
 
 router.patch(
   "/users/:id/role",
