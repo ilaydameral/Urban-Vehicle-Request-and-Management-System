@@ -86,7 +86,7 @@ export default function DriverTripMap({ trip, onTripComplete, onPositionUpdate }
     useEffect(() => {
         if (routePath.length === 0 || !trip.startTime || totalDuration === 0) return;
 
-        // ✅ Stop animation if trip is completed
+        // Stop animation if trip is completed
         if (trip.tripStatus === "COMPLETED" || trip.tripStatus === "CANCELLED") {
             setProgress(100);
             console.log("🛑 Trip completed, stopping animation");

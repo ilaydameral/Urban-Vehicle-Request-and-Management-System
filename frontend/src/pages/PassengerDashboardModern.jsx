@@ -203,7 +203,7 @@ export default function PassengerDashboardModern() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Check file size (max 2MB)
+        // Check file size
         if (file.size > 2 * 1024 * 1024) {
             setError("Image size must be less than 2MB");
             return;

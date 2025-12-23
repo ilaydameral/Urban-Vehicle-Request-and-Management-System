@@ -18,7 +18,7 @@
 }
 
 @layer components {
-  /* Primary Button - Uber Style */
+  /* Primary Button*/
   .btn-primary {
     @apply bg-midnight-900 text-white font-semibold py-3 px-6 rounded-pill 
            hover:bg-midnight-800 active:scale-95 transition-all duration-200
@@ -51,7 +51,7 @@
     @apply bg-white rounded-card shadow-float p-6;
   }
 
-  /* Input Field - Uber Style */
+  /* Input Field */
   .input-uber {
     @apply w-full px-4 py-3 bg-slate-100 border-b-2 border-gray-300 
            focus:border-brand-600 focus:bg-white transition-all duration-200

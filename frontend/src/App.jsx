@@ -29,16 +29,14 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
 import HomePage from "./pages/Home";
-import PassengerTrips from "./pages/PassengerTrips"; // ✅ yeni trip history sayfası
+import PassengerTrips from "./pages/PassengerTrips";
 
-// Küçük helper: tarih formatlayıcı (admin & coordinator sayfalarında kullanacağız)
 export function formatDate(iso) {
   if (!iso) return "-";
   const d = new Date(iso);
   return d.toLocaleString();
 }
 
-// Ortak küçük component: Admin / Coordinator sekme menüsü
 export function AdminTabs() {
   const { user } = useAuth();
 
@@ -46,7 +44,6 @@ export function AdminTabs() {
   const isAdmin = role === "ADMIN";
   const isCoordinator = role === "COORDINATOR";
 
-  // Admin isterse coordinator sayfalarını da görsün istiyorsan:
   const canSeeCoordinatorTabs = isCoordinator;
 
   return (
@@ -91,7 +88,7 @@ export default function App() {
 
   return (
     <div>
-      {/* ÜST MENÜ */}
+      {/* TOP MENU */}
       <nav style={{ padding: 8, borderBottom: "1px solid #ddd" }}>
         <Link to="/" style={{ marginRight: 12 }}>
           Home
@@ -103,7 +100,7 @@ export default function App() {
               Logged in as: <strong>{user.name}</strong> ({user.role})
             </span>
 
-            {/* Passenger linkleri */}
+            {/* Passenger links */}
             {user.role === "PASSENGER" && (
               <>
                 <Link to="/passenger" style={{ marginRight: 12 }}>
@@ -115,14 +112,14 @@ export default function App() {
               </>
             )}
 
-            {/* Driver linkleri */}
+            {/* Driver links */}
             {user.role === "DRIVER" && (
               <Link to="/driver" style={{ marginRight: 12 }}>
                 Driver Dashboard
               </Link>
             )}
 
-            {/* Admin linkleri */}
+            {/* Admin links */}
             {user.role === "ADMIN" && (
               <>
                 <Link to="/admin/users" style={{ marginRight: 12 }}>
@@ -143,7 +140,7 @@ export default function App() {
               </>
             )}
 
-            {/* COORDINATOR linkleri (admin ile aynı operasyon ekranlarına gider) */}
+            {/* COORDINATOR links */}
             {user.role === "COORDINATOR" && (
               <>
                 <Link to="/coordinator" style={{ marginRight: 12 }}>
@@ -174,16 +171,13 @@ export default function App() {
 
       {/* ROUTES */}
       <Routes>
-        {/* / artık HomePage → giriş yapmışsa role göre redirect, değilse login */}
         <Route path="/" element={<HomePage />} />
 
-        {/* Modern Design - New UI */}
         <Route path="/login" element={<LoginModern />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Test Routes for Old Design (if you want to compare) */}
         <Route path="/login-old" element={<LoginPage />} />
         <Route path="/passenger-old" element={<PassengerDashboard />} />
 
@@ -205,7 +199,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/* DRIVER DASHBOARD -> ANA SAYFA */}
+        {/* DRIVER DASHBOARD -> MAIN PAGE */}
         <Route
           path="/driver"
           element={
@@ -252,7 +246,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/* ADMIN DASHBOARD & ALT SAYFALAR */}
+        {/* ADMIN DASHBOARD & SUBPAGES */}
 
         {/* ADMIN */}
         <Route
@@ -333,7 +327,7 @@ export default function App() {
           }
         />
 
-        {/* 404 fallback -> login sayfasına yönlendir */}
+        {/* 404 fallback -> redirect to login page */}
         <Route path="*" element={<Navigate to="/login" replace />} />
 
 

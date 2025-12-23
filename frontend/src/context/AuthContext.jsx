@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
     };
   };
 
-  // Sayfa yenilenince /app açıldığında kullanıcıyı otomatik yükle
+  // Automatically load the user when the page is refreshed / app is opened
   useEffect(() => {
     async function fetchMe() {
       const token = localStorage.getItem("token");
