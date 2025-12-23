@@ -27,6 +27,7 @@ export default function AdminConsistency() {
         api.get("/admin/stats")
       ]);
 
+      // Backend returns { consistencyReport: { ... } }
       setChecks(consRes.data?.checks || consRes.data?.consistencyReport || {});
       setStats(statsRes.data);
     } catch (err) {
@@ -81,11 +82,11 @@ export default function AdminConsistency() {
 
     const list = [];
 
-    // Drivers Missing User
+    // 1. Drivers Missing User
     if (checks.driversWithMissingUser?.length) {
       checks.driversWithMissingUser.forEach(d => {
         list.push({
-          // Display Name if available 
+          // Display Name if available (it might be null since the issue IS missing user, so show "Unknown" or License)
           displayId: d.user?.name || `Driver (Lic: ${d.licenseNumber || 'N/A'})`,
           type: "Driver",
           issue: "Missing User",
@@ -95,7 +96,7 @@ export default function AdminConsistency() {
       });
     }
 
-    // Vehicles Missing Driver
+    // 2. Vehicles Missing Driver
     if (checks.vehiclesWithMissingDriver?.length) {
       checks.vehiclesWithMissingDriver.forEach(v => {
         list.push({
@@ -109,11 +110,11 @@ export default function AdminConsistency() {
       });
     }
 
-    // Requests Missing Passenger
+    // 3. Requests Missing Passenger
     if (checks.requestsWithMissingPassenger?.length) {
       checks.requestsWithMissingPassenger.forEach(r => {
         list.push({
-          // Passenger Name if available 
+          // Passenger Name if available (issue is missing passenger, so likely "Guest")
           displayId: r.passenger?.name || `Request (From: ${r.pickupAddress})`,
           type: "Request",
           issue: "Missing Passenger",
@@ -123,7 +124,7 @@ export default function AdminConsistency() {
       });
     }
 
-    // Trips Missing References
+    // 4. Trips Missing References
     if (checks.tripsWithMissingRefs?.length) {
       checks.tripsWithMissingRefs.forEach(t => {
         // Prefer Passenger Name, then Driver Name, then Trip ID
@@ -138,7 +139,7 @@ export default function AdminConsistency() {
       });
     }
 
-    // Status Inconsistencies
+    // 5. Status Inconsistencies
     if (checks.statusInconsistencies?.length) {
       checks.statusInconsistencies.forEach(item => {
         const name = item.passengerName || item.driverName || `Trip #${item.tripId.slice(-6)}`;

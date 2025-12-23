@@ -24,16 +24,19 @@ export default function RegisterPage() {
     }));
   };
 
-  // Role-based redirection
+  // Login'deki ile aynı: rol bazlı yönlendirme
   const redirectByRole = (role) => {
     switch (role) {
       case "DRIVER":
         navigate("/driver");
         break;
       case "ADMIN":
+        // Register'dan ADMIN seçilemiyor ama
+        // admin panelinden atanan kullanıcılar için bırakıyoruz.
         navigate("/admin/users");
         break;
       case "COORDINATOR":
+        // Coordinator da admin panelinden atanıyor.
         navigate("/admin/requests");
         break;
       case "PASSENGER":
@@ -59,9 +62,10 @@ export default function RegisterPage() {
         return;
       }
 
+      // Kayıt olur olmaz direkt login etmiş gibi sisteme al
       login(user, token);
 
-      // Role-based redirection
+      // Rol'e göre yönlendir
       redirectByRole(user.role);
     } catch (err) {
       console.error("Register error:", err);
@@ -129,6 +133,9 @@ export default function RegisterPage() {
             >
               <option value="PASSENGER">Passenger</option>
               <option value="DRIVER">Driver</option>
+              {/* ADMIN ve COORDINATOR rolleri,
+                  sadece mevcut bir admin tarafından
+                  admin panelinden atanır. */}
             </select>
           </label>
         </div>

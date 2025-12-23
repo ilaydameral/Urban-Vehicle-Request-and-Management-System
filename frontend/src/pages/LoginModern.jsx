@@ -1,4 +1,4 @@
-// src/pages/Login.jsx 
+// src/pages/Login.jsx - Modern Uber-Inspired Login
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/client";
@@ -21,7 +21,7 @@ export default function LoginPage() {
             const res = await api.post("/auth/login", { email, password });
             const { token, user } = res.data;
 
-            authLogin(user, token);
+            authLogin(user, token); // ✅ Fixed: (user, token) not (token, user)
 
 
             // Navigate based on role
@@ -43,7 +43,7 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen flex">
-            {/* Left Side - Illustration */}
+            {/* Left Side - Illustration (Hidden on mobile) */}
             <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-midnight-900 via-midnight-800 to-brand-600 items-center justify-center p-12">
                 <div className="max-w-lg">
                     <div className="mb-8">

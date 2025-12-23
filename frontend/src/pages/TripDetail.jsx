@@ -165,7 +165,7 @@ export default function TripDetail() {
               <b>Price:</b> {trip.price ?? 0} TL
             </div>
 
-            {/* Passenger Rating */}
+            {/* ✅ Passenger Rating */}
             {isPassenger && tripStatus === "COMPLETED" ? (
               <div
                 style={{

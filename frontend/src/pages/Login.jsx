@@ -29,11 +29,11 @@ export default function LoginPage() {
         navigate("/driver");
         break;
       case "ADMIN":
-        // Admin user management screen
+        // Admin kullanıcı yönetimi ekranı
         navigate("/admin/users");
         break;
       case "COORDINATOR":
-        // Coordinator global request screen
+        // Koordinatör global request ekranı
         navigate("/admin/requests");
         break;
       case "PASSENGER":
@@ -51,6 +51,7 @@ export default function LoginPage() {
       // Backend: POST /api/auth/login
       const res = await api.post("/auth/login", form);
 
+      // Beklenen cevap: { token, user: { ... } }
       const { token, user } = res.data || {};
 
       if (!token || !user) {
@@ -58,9 +59,10 @@ export default function LoginPage() {
         return;
       }
 
+      // AuthContext'e kullanıcı ve token'ı yaz
       login(user, token);
 
-      // Redirect to page based on role
+      // Rol'e göre sayfaya yönlendir
       redirectByRole(user.role);
     } catch (err) {
       console.error("Login error:", err);

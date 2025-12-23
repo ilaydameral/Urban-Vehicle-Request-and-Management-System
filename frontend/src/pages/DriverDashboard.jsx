@@ -47,7 +47,7 @@ export default function DriverDashboard() {
 
   const [availableRequests, setAvailableRequests] = useState([]);
   const [trips, setTrips] = useState([]);
-  const [dashboardStats, setDashboardStats] = useState(null); 
+  const [dashboardStats, setDashboardStats] = useState(null); // Yeni: dashboard istatistikleri
   const [currentTripPosition, setCurrentTripPosition] = useState(null); // Track current position for manual complete
 
   const [loading, setLoading] = useState(true);
@@ -68,7 +68,7 @@ export default function DriverDashboard() {
       setSuccessMsg("");
 
       try {
-        // Driver profile (404 normal -> show form)
+        // 1) Driver profile (404 normal -> show form)
         let profile = null;
         try {
           const driverRes = await api.get("/drivers/me");
@@ -82,7 +82,7 @@ export default function DriverDashboard() {
         }
         setDriverProfile(profile);
 
-        // Dashboard stats (rating, earnings, etc.)
+        // 1.5) Dashboard stats (rating, earnings, etc.)
         if (profile) {
           try {
             const dashboardRes = await api.get("/drivers/dashboard");
@@ -93,7 +93,7 @@ export default function DriverDashboard() {
           }
         }
 
-        // Vehicles
+        // 2) Vehicles
         const vehiclesRes = await api.get("/vehicles/my");
         const raw = vehiclesRes.data;
         const list = Array.isArray(raw) ? raw : raw?.vehicles || [];
@@ -103,10 +103,10 @@ export default function DriverDashboard() {
         const verified = list.filter((v) => v.isVerified);
         if (verified.length > 0) setSelectedVehicleId(verified[0]._id);
 
-        // Available requests
+        // 3) Available requests
         await fetchAvailableRequests();
 
-        // My trips
+        // 4) My trips
         await fetchMyTrips();
       } catch (err) {
         console.error("Error initializing driver dashboard", err);
@@ -231,8 +231,9 @@ export default function DriverDashboard() {
     }
   }
 
+  // PENDING request kabul → trip oluştur (status = ON_GOING)
   async function handleAcceptRequest(requestId) {
-    // Phase 2: prevent accidental accept
+    // ✅ Phase 2: prevent accidental accept
     if (!window.confirm("Accept this request and start a trip?")) return;
 
     if (!driverProfile) {
@@ -306,7 +307,7 @@ export default function DriverDashboard() {
       await api.patch(`/requests/${requestId}/reject`);
       setSuccessMsg("Request rejected successfully.");
 
-      // Immediate refresh with retry 
+      // Immediate refresh with retry (like accept)
       await new Promise(resolve => setTimeout(resolve, 300));
       await fetchAvailableRequests();
 
@@ -330,7 +331,7 @@ export default function DriverDashboard() {
     }
   }
 
-  // ACCEPTED trip → ON_GOING 
+  // ACCEPTED trip → ON_GOING (Start the trip)
   async function handleStartTrip(tripId) {
     if (!window.confirm("Start this trip?")) return;
 
@@ -371,6 +372,7 @@ export default function DriverDashboard() {
 
   // ON_GOING trip → COMPLETED
   async function handleCompleteTrip(tripId, currentPosition = null) {
+    // ✅ Phase 2: prevent accidental complete
     if (!window.confirm("Complete this trip?")) return;
 
     setError("");
@@ -437,6 +439,7 @@ export default function DriverDashboard() {
 
   // ON_GOING trip → CANCELLED
   async function handleCancelTrip(tripId) {
+    // ✅ Phase 2: prevent accidental cancel
     if (!window.confirm("Cancel this trip?")) return;
 
     setError("");
@@ -574,7 +577,7 @@ export default function DriverDashboard() {
         </section>
       )}
 
-      {/* Driver Profile creation */}
+      {/* (1) Driver Profile creation */}
       {!driverProfile && (
         <section
           style={{
@@ -626,7 +629,7 @@ export default function DriverDashboard() {
         </section>
       )}
 
-      {/* Add Vehicle UI */}
+      {/* (2) Add Vehicle UI */}
       <section
         style={{
           border: "1px solid #ddd",
@@ -684,7 +687,7 @@ export default function DriverDashboard() {
         </form>
       </section>
 
-      {/* Vehicle selection */}
+      {/* (3) Vehicle selection */}
       <section
         style={{
           border: "1px solid #ddd",
@@ -730,7 +733,7 @@ export default function DriverDashboard() {
               </p>
             )}
 
-            {/* Vehicles list */}
+            {/* Vehicles list (optional view) */}
             <div style={{ marginTop: 12 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -767,7 +770,7 @@ export default function DriverDashboard() {
         )}
       </section>
 
-      {/* Available Requests */}
+      {/* (4) Available Requests */}
       <section
         style={{
           border: "1px solid #ddd",
@@ -878,7 +881,7 @@ export default function DriverDashboard() {
         )}
       </section>
 
-      {/* Active Trip with Live Map */}
+      {/* (4.5) Active Trip with Live Map */}
       {trips.filter(t => t.tripStatus === "ON_GOING").length > 0 && (
         <section
           style={{
@@ -902,7 +905,7 @@ export default function DriverDashboard() {
                   onPositionUpdate={setCurrentTripPosition}
                 />
 
-                {/* Manual Complete Button  */}
+                {/* Manual Complete Button (fallback) */}
                 <div style={{ marginTop: "16px", textAlign: "center" }}>
                   <button
                     onClick={() => handleCompleteTrip(trip._id, currentTripPosition)}
@@ -926,7 +929,7 @@ export default function DriverDashboard() {
         </section>
       )}
 
-      {/*  My Trips */}
+      {/* (5) My Trips */}
       <section
         style={{
           border: "1px solid #ddd",

@@ -17,6 +17,7 @@ export default function PassengerDashboard() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
+  // Tarih formatlayıcı
   const formatDate = (iso) => {
     if (!iso) return "-";
     return new Date(iso).toLocaleString();
@@ -27,6 +28,7 @@ export default function PassengerDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Kendi request’lerini çek
   async function fetchMyRequests() {
     setLoadingList(true);
     setError("");
@@ -36,6 +38,7 @@ export default function PassengerDashboard() {
       const data = res.data;
 
       let list = [];
+      // Backend direkt array döndürebilir veya { requests: [...] } şeklinde olabilir
       if (Array.isArray(data)) {
         list = data;
       } else if (Array.isArray(data?.requests)) {
@@ -54,12 +57,13 @@ export default function PassengerDashboard() {
     }
   }
 
+  // Form değişim
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Create new request
+  // Yeni request oluştur
   const handleCreateRequest = async (e) => {
     e.preventDefault();
     setError("");
@@ -76,8 +80,7 @@ export default function PassengerDashboard() {
       setSuccessMsg("Request created successfully.");
       setForm({ pickupAddress: "", dropAddress: "" });
 
-      // Refresh list
-      
+      // Listeyi yenile
       await fetchMyRequests();
     } catch (err) {
       console.error("Error creating request", err);
@@ -90,7 +93,7 @@ export default function PassengerDashboard() {
     }
   };
 
-  // Cancel request (only when it's PENDING)
+  // Request iptal et (sadece PENDING iken)
   async function handleCancelRequest(requestId) {
     if (!window.confirm("Are you sure you want to cancel this request?")) return;
 
@@ -117,7 +120,7 @@ export default function PassengerDashboard() {
         Welcome, <strong>{user?.name}</strong> ({user?.email})
       </p>
 
-      {/* Request creation section */}
+      {/* Request oluşturma bölümü */}
       <section
         style={{
           border: "1px solid #ddd",
