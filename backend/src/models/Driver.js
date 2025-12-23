@@ -35,7 +35,7 @@ const driverSchema = new mongoose.Schema(
       default: true,
     },
 
-     // Optional statistics (can be improved later)
+    // Optional statistics (can be improved later)
     rating: {
       type: Number,
       default: 0,
@@ -58,5 +58,44 @@ const driverSchema = new mongoose.Schema(
     timestamps: true, // createdAt, updatedAt
   }
 );
+
+// -- STORED PROCEDURE (Simulated via Mongoose Static) --
+// This encapsulates the logic of aggregating driver stats in the DB layer
+driverSchema.statics.calculateStats = async function (driverId) {
+  console.log(`[Stored Proc] Calculating stats for driver ${driverId}...`);
+  // "Trip" modeline circular dependency olmaması için burada require edebiliriz
+  // veya aggregation ile yapabiliriz. Aggregation en temizi.
+  const stats = await mongoose.model("Trip").aggregate([
+    {
+      $match: {
+        driver: new mongoose.Types.ObjectId(driverId),
+        isRated: true,
+        passengerRating: { $exists: true, $ne: null },
+      },
+    },
+    {
+      $group: {
+        _id: "$driver",
+        nRating: { $sum: 1 },
+        avgRating: { $avg: "$passengerRating" },
+      },
+    },
+  ]);
+
+  if (stats.length > 0) {
+    const { nRating, avgRating } = stats[0];
+    await this.findByIdAndUpdate(driverId, {
+      rating: Math.round(avgRating * 10) / 10, // 1 decimal
+      ratingCount: nRating,
+    });
+    console.log(`[Stored Proc] Driver ${driverId} updated: ${nRating} ratings, avg ${avgRating}`);
+  } else {
+    // Hiç puan yoksa
+    await this.findByIdAndUpdate(driverId, {
+      rating: 0,
+      ratingCount: 0,
+    });
+  }
+};
 
 module.exports = mongoose.model("Driver", driverSchema);

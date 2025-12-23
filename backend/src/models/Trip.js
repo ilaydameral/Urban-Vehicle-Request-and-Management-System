@@ -91,4 +91,22 @@ tripSchema.index(
   }
 );
 
+// -- TRIGGER (Simulated via Mongoose Middleware) --
+// After a trip is saved, check if we need to update Driver stats
+tripSchema.post("save", async function () {
+  // 'this' refers to the document that was just saved
+  if (this.isRated && this.passengerRating) {
+    console.log(`[Trigger] Trip ${this._id} was rated. Updating driver stats...`);
+    // Call the "Stored Procedure" on the Driver model
+    // We access the model via mongoose.model to avoid circular requires if possible,
+    // or simply require Driver at top. But mongoose.model('Driver') is safer here.
+    const Driver = mongoose.model("Driver");
+    try {
+      await Driver.calculateStats(this.driver);
+    } catch (err) {
+      console.error("[Trigger] Error updating driver stats:", err);
+    }
+  }
+});
+
 module.exports = mongoose.model("Trip", tripSchema);
