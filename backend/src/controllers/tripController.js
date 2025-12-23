@@ -411,12 +411,12 @@ async function completeTrip(req, res) {
     console.log(`   Drop: (${trip.request?.dropLat}, ${trip.request?.dropLng})`);
     console.log(`   Distance: ${distanceKm.toFixed(2)} km`);
 
-    const BASE_FARE = ​​20; // Initial fee (TL)
+    const BASE_FARE = 20; // Initial fee (TL)
     const PER_KM_RATE = 8; // Fee per KM (TL)
-    const MINIMUM_FARE = ​​30; // Minimum fee (TL)
+    const MINIMUM_FARE = 30; // Minimum fee (TL)
 
     let calculatedFare = BASE_FARE + (distanceKm * PER_KM_RATE);
-    calculatedFare = Math.max(calculatedFare, MINIMUM_FARE); 
+    calculatedFare = Math.max(calculatedFare, MINIMUM_FARE);
 
     trip.price = Math.round(calculatedFare * 100) / 100;
 
@@ -454,6 +454,7 @@ async function completeTrip(req, res) {
 }
 
 async function cancelTrip(req, res) {
+  let session = null;
   try {
     session = await mongoose.startSession();
     session.startTransaction();
@@ -530,8 +531,14 @@ async function cancelTrip(req, res) {
 
     return res.json({ trip });
   } catch (err) {
+    try {
+      if (session) await session.abortTransaction();
+    } catch (_) { }
+
     console.error("Cancel trip error:", err);
     return res.status(500).json({ message: "Server error while cancelling trip" });
+  } finally {
+    if (session) session.endSession();
   }
 }
 
