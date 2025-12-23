@@ -1,9 +1,7 @@
 // src/utils/tripNotifications.js
 const { sendEmail } = require("./emailService");
 
-/**
- * Yolcuya araç/şoför atandığında email gönder
- */
+ // Send an email when a vehicle/driver is assigned to the passenger.
 async function notifyPassengerTripAssigned({ passenger, driver, vehicle, trip }) {
     try {
         const passengerEmail = passenger.email;
@@ -68,9 +66,8 @@ CityRide
     }
 }
 
-/**
- * Şoföre yeni görev atandığında email gönder
- */
+
+// Send an email when the driver is assigned a new task.
 async function notifyDriverTripAssigned({ driver, passenger, trip, vehicle }) {
     try {
         const driverEmail = driver.user?.email;
@@ -139,9 +136,7 @@ CityRide
     }
 }
 
-/**
- * Trip iptal edildiğinde hem yolcuya hem şoföre email gönder
- */
+//When a trip is cancelled, an email is sent to both the passenger and the driver.
 async function notifyTripCancellation({ passenger, driver, trip, cancelledBy }) {
     try {
         // Passenger email

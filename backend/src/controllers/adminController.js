@@ -280,7 +280,6 @@ async function checkConsistency(req, res) {
         tripsWithMissingRefs.push({
           tripId: t._id,
           problems,
-          // meaningful info if available
           passengerName: t.passenger?.name,
           driverName: t.driver?.user?.name,
         });
@@ -522,8 +521,6 @@ async function overrideTripStatus(req, res) {
 }
 
 // -- VIEW / COMPLEX QUERY --
-// Aggregates driver data with trip statistics to generate a performance report
-// This simulates a SQL View: "CREATE VIEW DriverPerformance AS ..."
 async function getDriverPerformanceReport(req, res) {
   try {
     const report = await Driver.aggregate([
@@ -536,7 +533,7 @@ async function getDriverPerformanceReport(req, res) {
           as: "userInfo",
         },
       },
-      { $unwind: "$userInfo" }, // Convert array to object
+      { $unwind: "$userInfo" },
       // 2. Join with Trips to calculate average price and total distance (mocked)
       {
         $lookup: {
@@ -553,8 +550,8 @@ async function getDriverPerformanceReport(req, res) {
           name: "$userInfo.name",
           email: "$userInfo.email",
           licenseNumber: 1,
-          totalTrips: 1, // From schema
-          rating: 1,     // From schema (updated by Trigger)
+          totalTrips: 1,
+          rating: 1,     
           // Calculate real-time stats from the joined 'trips' array
           calculatedTotalEarnings: { $sum: "$trips.price" },
           completedTripsCount: {
@@ -595,19 +592,16 @@ async function getDashboardAnalytics(req, res) {
       { $sort: { count: -1 } }, // Highest demand first
     ]);
 
-    // Format output: { "9": 5, "18": 12, ... }
     const peakHours = {};
     peakHoursRaw.forEach((i) => {
       peakHours[i._id] = i.count;
     });
 
-    // 2. Zone Analytics (Normally using lat/lng clustering, simplified here by address)
-    // We will list top 5 most frequent pickup addresses (or just random clustering if addresses are unique)
-    // Since addresses might be unique, this is a "best effort" using simple strings.
+    // 2. Zone Analytics
     const popularZonesRaw = await Request.aggregate([
       {
         $group: {
-          _id: "$pickupAddress", // Group by exact string (or use partial match in real app)
+          _id: "$pickupAddress", // Group by exact string
           count: { $sum: 1 },
         },
       },

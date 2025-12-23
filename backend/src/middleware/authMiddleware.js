@@ -5,7 +5,6 @@ const User = require("../models/user");
 async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
 
-  // "Authorization: Bearer <token>" beklenir
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ message: "No token provided" });
   }
@@ -13,27 +12,25 @@ async function authMiddleware(req, res, next) {
   const token = authHeader.split(" ")[1];
 
   try {
-    // 1) Token doğrula
+    // verify Token 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // decoded: { userId, role, email, iat, exp }
 
     if (!decoded || !decoded.userId) {
       return res.status(401).json({ message: "Invalid token payload" });
     }
 
-    // 2) Kullanıcı DB’de var mı, aktif mi, rolü güncel mi?
+    // Does the user exist in the database, is active, and is their role up-to-date?
     const user = await User.findById(decoded.userId).select("_id email role isActive");
 
     if (!user) {
       return res.status(401).json({ message: "User not found" });
     }
 
-    // Admin account blocking -> token olsa bile erişim yok
+    // Admin account blocking
     if (user.isActive === false) {
       return res.status(403).json({ message: "Account is inactive" });
     }
 
-    // 3) req.user’ı DB’den gelen güncel bilgilerle set et
     req.user = {
       userId: user._id.toString(),
       role: user.role,

@@ -69,13 +69,6 @@ router.patch(
   approveDriver
 );
 
-/**
- * PATCH /api/drivers/:id/status
- * COORDINATOR veya ADMIN → sürücünün isActive durumunu günceller.
- *
- * Body:
- *  { "isActive": true }  veya  { "isActive": false }
- */
 router.patch(
   "/:id/status",
   authMiddleware,
@@ -83,17 +76,6 @@ router.patch(
   updateDriverStatus
 );
 
-/**
- * GET /api/drivers/dashboard
- * DRIVER → kendi dashboard özetini görür.
- *
- * Dönen bilgiler:
- *  - driver: profil, approval, aktiflik, rating, ratingCount, totalTrips
- *  - vehicles: toplam araç sayısı, verified/active sayıları, araç listesi
- *  - trips:
- *      - ongoing: varsa şu anki ON_GOING trip (request/passenger/vehicle ile)
- *      - counts: completed, cancelled
- */
 router.get(
   "/dashboard",
   authMiddleware,

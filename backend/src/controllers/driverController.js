@@ -230,7 +230,6 @@ async function getDriverDashboard(req, res) {
         .populate("vehicle"),
       Trip.countDocuments({ driver: driver._id, status: "COMPLETED" }),
       Trip.countDocuments({ driver: driver._id, status: "CANCELLED" }),
-      // Toplam kazanç hesaplama
       Trip.aggregate([
         {
           $match: {
@@ -247,7 +246,6 @@ async function getDriverDashboard(req, res) {
       ])
     ]);
 
-    // Toplam kazancı al (aggregation sonucundan)
     const totalEarnings = earningsResult && earningsResult[0]
       ? earningsResult[0].totalEarnings
       : 0;

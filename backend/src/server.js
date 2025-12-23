@@ -20,7 +20,7 @@ function validateEnv() {
   }
 }
 
-// Önce env’leri kontrol et, sonra DB’ye bağlan
+// First check the envs, then connect to the database.
 validateEnv();
 connectDB();
 

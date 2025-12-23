@@ -158,7 +158,6 @@ async function forgotPassword(req, res) {
 
     const user = await User.findOne({ email: email.toLowerCase() });
 
-    // Güvenlik: kullanıcı yoksa da aynı mesaj dön
     if (!user) {
       return res.json({
         message: "If that email is registered, password reset instructions have been sent.",

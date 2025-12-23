@@ -95,8 +95,8 @@ async function getResources(req, res) {
 
     return res.json({
       drivers,
-      vehicles, // Keep this for compatibility
-      vehiclesByDriver, // Frontend expects this
+      vehicles,
+      vehiclesByDriver,
     });
   } catch (err) {
     console.error("Get resources error:", err);
@@ -147,7 +147,6 @@ async function assignRequest(req, res) {
     }
 
     // Create trip using tripController's createTrip logic
-    // We'll call it programmatically
     const Trip = require("../models/Trip");
 
     const trip = new Trip({
@@ -204,8 +203,6 @@ async function assignRequest(req, res) {
     });
   }
 }
-
-// coordinatorController.js (EN ALT TARAF)
 
 async function approveDriver(req, res) {
   try {

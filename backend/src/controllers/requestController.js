@@ -257,7 +257,6 @@ async function cancelRequest(req, res) {
         .json({ message: "You are not allowed to cancel this request" });
     }
 
-    // Passenger iptali: raporla uyumlu şekilde PENDING + ACCEPTED
     const cancellableStatuses = ["PENDING", "ACCEPTED"];
 
     if (!cancellableStatuses.includes(request.status)) {
@@ -266,7 +265,6 @@ async function cancelRequest(req, res) {
       });
     }
 
-    // Zaten iptal edilmişse idempotent
     if (request.status === "CANCELLED") {
       return res.json({ request });
     }
@@ -277,11 +275,9 @@ async function cancelRequest(req, res) {
       session = await mongoose.startSession();
       session.startTransaction();
 
-      // Request'i CANCELLED yap
       request.status = "CANCELLED";
       await request.save({ session });
 
-      // Bu request'e bağlı trip varsa onu da CANCELLED yap + aracı AVAILABLE yap
       const trip = await Trip.findOne({ request: request._id }, null, { session })
         .populate({
           path: "driver",
@@ -291,8 +287,6 @@ async function cancelRequest(req, res) {
         .populate({ path: "passenger", select: "name email" });
 
       if (trip) {
-        // Trip refactor yaptıysan: trip.tripStatus / trip.endTime
-        // Eski isimler kaldıysa: trip.status / trip.completedAt
         const currentTripStatus = trip.tripStatus ?? trip.status;
 
         if (currentTripStatus !== "COMPLETED" && currentTripStatus !== "CANCELLED") {

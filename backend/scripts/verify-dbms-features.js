@@ -11,7 +11,6 @@ dotenv.config({ path: "./.env" });
 async function main() {
     console.log("🚀 Starting DBMS Features Verification...");
 
-    // UPDATED: Using MONGODB_URI
     if (!process.env.MONGODB_URI) {
         console.error("❌ MONGODB_URI is missing in .env");
         process.exit(1);
@@ -85,7 +84,7 @@ async function main() {
 
         console.log("✅ Test Data Created");
 
-        // 2. TRANSACTION TEST (create Trip)
+        // 2. TRANSACTION TEST
         console.log("\n--- 2. Testing Transaction (Trip Creation) ---");
         session = await mongoose.startSession();
         session.startTransaction();
@@ -104,7 +103,7 @@ async function main() {
         tripId = trip._id;
         console.log("✅ Transaction Committed: Trip Created & Vehicle set to ON_TRIP");
 
-        // 3. TRIGGER & STORED PROCEDURE TEST (Rating)
+        // 3. TRIGGER & STORED PROCEDURE TEST
         console.log("\n--- 3. Testing Trigger & Stored Procedure (Rating) ---");
 
         trip.tripStatus = "COMPLETED";
@@ -129,7 +128,6 @@ async function main() {
 
         // 4. VIEW / AGGREGATION TEST
         console.log("\n--- 4. Testing Aggregation View (Driver Report) ---");
-        // We use the same aggregation pipeline logic as in adminController.js
         const report = await Driver.aggregate([
             { $match: { _id: driverId } },
             {
@@ -176,7 +174,6 @@ async function main() {
 
         // 5. CASCADE DELETE TEST
         console.log("\n--- 5. Testing Cascade Delete (User Trigger) ---");
-        // We will delete the driverUser -> Should delete driverProfile and set Vehicle to inactive
         await User.findOneAndDelete({ _id: driverUserId });
 
         const deletedDriver = await Driver.findById(driverId);
@@ -201,7 +198,7 @@ async function main() {
         const dummyRequests = [];
         for (let i = 0; i < 10; i++) {
             dummyRequests.push({
-                passenger: userId, // Warning: userId deleted in cleanup if not careful, but we use existing userId
+                passenger: userId, 
                 pickupAddress: i % 2 === 0 ? "Besiktas" : "Kadikoy",
                 dropAddress: "X",
                 status: "COMPLETED"

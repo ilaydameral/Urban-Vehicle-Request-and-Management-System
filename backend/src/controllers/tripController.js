@@ -348,7 +348,7 @@ async function completeTrip(req, res) {
     trip.tripStatus = "COMPLETED";
     trip.endTime = new Date();
 
-    // Handle actual dropoff location (if provided - early completion)
+    // Handle actual dropoff location
     const { actualDropLat, actualDropLng, actualDropAddress } = req.body || {};
     if (actualDropLat && actualDropLng) {
       trip.actualDropLat = actualDropLat;
@@ -379,8 +379,7 @@ async function completeTrip(req, res) {
       }
     }
 
-    // ✅ Ücret Hesaplama - KM Bazlı
-    // Haversine formülü ile mesafe hesaplama
+    // Fare Calculation - Based on Kilometers
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
       const R = 6371; // Earth radius in km
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -412,14 +411,14 @@ async function completeTrip(req, res) {
     console.log(`   Drop: (${trip.request?.dropLat}, ${trip.request?.dropLng})`);
     console.log(`   Distance: ${distanceKm.toFixed(2)} km`);
 
-    const BASE_FARE = 20; // Açılış ücreti (TL)
-    const PER_KM_RATE = 8; // KM başı ücret (TL)
-    const MINIMUM_FARE = 30; // Minimum ücret (TL)
+    const BASE_FARE = ​​20; // Initial fee (TL)
+    const PER_KM_RATE = 8; // Fee per KM (TL)
+    const MINIMUM_FARE = ​​30; // Minimum fee (TL)
 
     let calculatedFare = BASE_FARE + (distanceKm * PER_KM_RATE);
-    calculatedFare = Math.max(calculatedFare, MINIMUM_FARE); // Minimum garantisi
+    calculatedFare = Math.max(calculatedFare, MINIMUM_FARE); 
 
-    trip.price = Math.round(calculatedFare * 100) / 100; // 2 ondalık basamak
+    trip.price = Math.round(calculatedFare * 100) / 100;
 
     console.log(`   Calculated Fare: ${trip.price} TL (${distanceKm.toFixed(2)} km x ${PER_KM_RATE} TL/km + ${BASE_FARE} TL base)`);
 

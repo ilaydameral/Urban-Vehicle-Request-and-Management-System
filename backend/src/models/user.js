@@ -29,7 +29,6 @@ const userSchema = new mongoose.Schema(
       default: "PASSENGER",
     },
 
-    // YENİ EKLENEN ALAN → Admin kullanıcıyı pasif yapabilir
     isActive: {
       type: Boolean,
       default: true,
@@ -65,11 +64,11 @@ userSchema.pre("findOneAndDelete", async function () {
     console.log(`[Cascade Delete] Deleting user ${doc._id} (${doc.role}). Cleaning dependent data...`);
 
     if (doc.role === "DRIVER") {
-      // 1. Delete Driver Profile
+      // Delete Driver Profile
       const driver = await mongoose.model("Driver").findOneAndDelete({ user: doc._id });
       if (driver) {
         console.log(`   -> Deleted Driver profile ${driver._id}`);
-        // 2. Set Vehicles to INACTIVE or delete them? Let's setIsActive=false
+        // Set Vehicles to INACTIVE or delete them? Let's setIsActive=false
         await mongoose.model("Vehicle").updateMany(
           { ownerDriver: driver._id },
           { $set: { isActive: false, availabilityStatus: "INACTIVE" } }
@@ -77,10 +76,7 @@ userSchema.pre("findOneAndDelete", async function () {
         console.log(`   -> Deactivated vehicles for driver ${driver._id}`);
       }
     } else if (doc.role === "PASSENGER") {
-      // 3. Cancel active requests?
-      // Better: just delete PENDING requests. Keep history for others but maybe update ref?
-      // Since it's NoSQL, if we delete user, the reference becomes dangling.
-      // Let's delete PENDING requests to be clean.
+      // Cancel active requests?
       const result = await mongoose.model("Request").deleteMany({
         passenger: doc._id,
         status: "PENDING"

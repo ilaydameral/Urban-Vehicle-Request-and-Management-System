@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 
 const vehicleSchema = new mongoose.Schema(
   {
-    // Owner of this vehicle (a Driver document)
+    // Owner of this vehicle
     ownerDriver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Driver",
@@ -46,7 +46,7 @@ const vehicleSchema = new mongoose.Schema(
       trim: true,
     },
 
-    // Coordinator verification (matching Phase 1 idea)
+    // Coordinator verification
     isVerified: {
       type: Boolean,
       default: false,
@@ -61,7 +61,7 @@ const vehicleSchema = new mongoose.Schema(
     locationLat: { type: Number },
     locationLng: { type: Number },
 
-    // Aracın operasyonel müsaitlik durumu
+      // Vehicle operational availability status
     availabilityStatus: {
       type: String,
       enum: ["AVAILABLE", "ON_TRIP", "INACTIVE"],

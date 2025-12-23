@@ -1,5 +1,4 @@
 // scripts/cleanupRequests.js
-// Bu script database'deki dropoffAddress'i boş olan kayıtları temizler
 
 require("dotenv").config();
 const mongoose = require("mongoose");
@@ -27,7 +26,6 @@ async function cleanup() {
                 console.log(`  ${index + 1}. ID: ${req._id}, Pickup: ${req.pickupAddress}, Dropoff: "${req.dropoffAddress}"`);
             });
 
-            // Silme onayı
             const readline = require("readline").createInterface({
                 input: process.stdin,
                 output: process.stdout

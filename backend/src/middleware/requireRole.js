@@ -1,7 +1,7 @@
 // src/middleware/requireRole.js
 module.exports = function requireRole(...allowedRoles) {
   return (req, res, next) => {
-    // authMiddleware req.user set etmiş olmalı
+    // authMiddleware must have set req.user
     if (!req.user || !req.user.role) {
       return res.status(401).json({ message: "Unauthorized" });
     }
